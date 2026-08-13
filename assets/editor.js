@@ -62,6 +62,18 @@
     .ed-row{display:flex;justify-content:space-between;align-items:center;
       padding:7px 0;border-bottom:1px solid rgba(46,64,87,.09)}
     .ed-row input[type=color]{width:34px;height:24px;border:0;background:none;cursor:pointer}
+    .ed-guides{position:fixed;inset:0;z-index:9998;pointer-events:none}
+    .ed-ins{position:fixed;background:#2E4057;border-radius:2px;box-shadow:0 0 0 2px rgba(46,64,87,.22);display:none}
+    .ed-ins::before,.ed-ins::after{content:'';position:absolute;width:7px;height:7px;
+      background:#2E4057;border-radius:50%}
+    .ed-ins.x::before{left:-3px;top:-4px}.ed-ins.x::after{left:-3px;bottom:-4px}
+    .ed-ins.y::before{top:-3px;left:-4px}.ed-ins.y::after{top:-3px;right:-4px}
+    .ed-g{position:fixed;background:rgba(147,174,201,.85);display:none}
+    .ed-g.h{height:1px;left:0;right:0}
+    .ed-g.v{width:1px;top:0;bottom:0}
+    .ed-drag{opacity:.35!important}
+    .ed-grab{cursor:grab}
+    .ed-sec-h{position:absolute;top:14px;left:5vw;z-index:60}
     .ed-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
       z-index:10001;background:#16181C;color:#F0E9DC;padding:14px 26px;border-radius:3px;
       font:400 12px/1 Inter,sans-serif;letter-spacing:.06em;opacity:0;
@@ -219,12 +231,178 @@
     host.parentNode.insertBefore(b, host.nextSibling);
   }
 
+  /* ============================================================
+     DRAG TO REORDER + GUIDE LINES
+     ============================================================ */
+  const layer = document.createElement('div');
+  layer.className = 'ed-guides';
+  layer.innerHTML = `<div class="ed-ins"></div>
+    <div class="ed-g h" id="gT"></div><div class="ed-g h" id="gB"></div>
+    <div class="ed-g v" id="gL"></div><div class="ed-g v" id="gR"></div>`;
+  document.body.appendChild(layer);
+  const ins = layer.querySelector('.ed-ins');
+  const gT = layer.querySelector('#gT'), gB = layer.querySelector('#gB');
+  const gL = layer.querySelector('#gL'), gR = layer.querySelector('#gR');
+
+  let drag = null, drop = null;
+
+  function showGuides(r, after, axis) {
+    // alignment guides along the target's edges
+    gT.style.top = r.top + 'px';      gT.style.display = 'block';
+    gB.style.top = r.bottom + 'px';   gB.style.display = 'block';
+    gL.style.left = r.left + 'px';    gL.style.display = 'block';
+    gR.style.left = r.right + 'px';   gR.style.display = 'block';
+    // insertion line
+    ins.className = 'ed-ins ' + axis;
+    if (axis === 'x') {
+      ins.style.left = (after ? r.right + 6 : r.left - 8) + 'px';
+      ins.style.top = r.top + 'px';
+      ins.style.width = '3px';
+      ins.style.height = r.height + 'px';
+    } else {
+      ins.style.left = r.left + 'px';
+      ins.style.top = (after ? r.bottom + 4 : r.top - 6) + 'px';
+      ins.style.height = '3px';
+      ins.style.width = r.width + 'px';
+    }
+    ins.style.display = 'block';
+  }
+  function clearGuides() {
+    [ins, gT, gB, gL, gR].forEach(e => e.style.display = 'none');
+  }
+
+  /** Make the children of `container` reorderable. */
+  function sortable(container, itemSel, axis, listPath, onMove) {
+    if (!container) return;
+    const items = [...container.querySelectorAll(itemSel)];
+    items.forEach((el, i) => {
+      el.dataset.sortIdx = i;
+
+      // drag only from the handle, so text editing keeps working
+      const handle = document.createElement('button');
+      handle.className = 'ed-chip ed-grab';
+      handle.textContent = '⠿ Move';
+      handle.title = 'Drag to reorder';
+      handle.onmousedown = () => { el.draggable = true; };
+      handle.onmouseup = () => { el.draggable = false; };
+      handle.onclick = e => { e.preventDefault(); e.stopPropagation(); };
+
+      let tag = el.querySelector(':scope > .ed-tag') || el.querySelector('.ed-tag');
+      if (!tag) {
+        tag = document.createElement('div');
+        tag.className = 'ed-tag';
+        el.style.position = el.style.position || 'relative';
+        el.appendChild(tag);
+      }
+      tag.appendChild(handle);
+
+      el.addEventListener('dragstart', e => {
+        drag = { container, listPath, from: i, onMove };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(i));
+        el.classList.add('ed-drag');
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('ed-drag');
+        el.draggable = false;
+        clearGuides(); drag = null; drop = null;
+      });
+      el.addEventListener('dragover', e => {
+        if (!drag || drag.container !== container) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const r = el.getBoundingClientRect();
+        const after = axis === 'x'
+          ? (e.clientX - r.left) > r.width / 2
+          : (e.clientY - r.top) > r.height / 2;
+        showGuides(r, after, axis);
+        drop = { to: i, after };
+      });
+    });
+
+    container.addEventListener('dragover', e => { if (drag) e.preventDefault(); });
+    container.addEventListener('drop', e => {
+      if (!drag || !drop || drag.container !== container) return;
+      e.preventDefault();
+      let { from } = drag, { to, after } = drop;
+      let target = after ? to + 1 : to;
+      if (from < target) target--;
+      if (target !== from) {
+        drag.onMove(from, target);
+        markDirty();
+        clearGuides();
+        redraw();
+        say('Moved');
+      }
+      clearGuides(); drag = null; drop = null;
+    });
+  }
+
+  const moveIn = arr => (from, to) => arr.splice(to, 0, arr.splice(from, 1)[0]);
+
+  function wireSortables() {
+    sortable(document.querySelector('#work .work-grid'), '.project', 'x',
+             'work.projects', moveIn(D().work.projects));
+    sortable(document.querySelector('#gallery .g-grid'), '.g-item', 'x',
+             'gallery.photos', moveIn(D().gallery.photos));
+    sortable(document.querySelector('#services .s-grid'), '.s-card', 'x',
+             'services.items', moveIn(D().services.items));
+
+    // whole sections, stacked vertically
+    const order = D().sectionOrder || ['work','gallery','services','about','contact'];
+    order.forEach((id, i) => {
+      const sec = document.getElementById(id);
+      if (!sec) return;
+      sec.style.position = 'relative';
+      const h = document.createElement('div');
+      h.className = 'ed-tag ed-sec-h';
+      h.innerHTML = `<button class="ed-chip ed-grab">⠿ Move section</button>`;
+      sec.appendChild(h);
+      const btn = h.querySelector('button');
+      btn.onmousedown = () => { sec.draggable = true; };
+      btn.onmouseup = () => { sec.draggable = false; };
+      btn.onclick = e => { e.preventDefault(); e.stopPropagation(); };
+
+      sec.addEventListener('dragstart', e => {
+        drag = { container: 'sections', from: i,
+                 onMove: moveIn(D().sectionOrder) };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', id);
+        sec.classList.add('ed-drag');
+      });
+      sec.addEventListener('dragend', () => {
+        sec.classList.remove('ed-drag'); sec.draggable = false;
+        clearGuides(); drag = null; drop = null;
+      });
+      sec.addEventListener('dragover', e => {
+        if (!drag || drag.container !== 'sections') return;
+        e.preventDefault();
+        const r = sec.getBoundingClientRect();
+        const after = (e.clientY - r.top) > r.height / 2;
+        showGuides(r, after, 'y');
+        drop = { to: i, after };
+      });
+      sec.addEventListener('drop', e => {
+        if (!drag || !drop || drag.container !== 'sections') return;
+        e.preventDefault();
+        let { from } = drag, { to, after } = drop;
+        let target = after ? to + 1 : to;
+        if (from < target) target--;
+        if (target !== from) {
+          drag.onMove(from, target);
+          markDirty(); clearGuides(); redraw(); say('Section moved');
+        }
+        clearGuides(); drag = null; drop = null;
+      });
+    });
+  }
+
   /* ---------- redraw ---------- */
   function redraw() {
     const y = scrollY;
     window.ADKINE.render(D());
     document.querySelectorAll('.reveal').forEach(e => e.classList.add('in'));
-    wireText(); wireMedia(); wireAdders();
+    wireText(); wireMedia(); wireAdders(); wireSortables();
     scrollTo(0, y);
   }
 
@@ -308,6 +486,8 @@
   };
 
   /* ---------- boot: editing works straight away ---------- */
+  if (!Array.isArray(D().sectionOrder))
+    D().sectionOrder = ['work','gallery','services','about','contact'];
   buildPanel();
   redraw();
   say('Click any text to edit it — sign in when you want to publish', 6000);
