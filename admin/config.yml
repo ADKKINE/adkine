@@ -6,7 +6,7 @@ backend:
   name: github
   repo: ADKKINE/adkine
   branch: main
-  base_url: https://YOUR-WORKER.workers.dev # <-- change to your auth worker URL
+  base_url: https://sveltia-cms-auth.adratzabi.workers.dev
 
 media_folder: "assets/uploads"
 public_folder: "/assets/uploads"
