@@ -86,6 +86,7 @@
   bar.innerHTML = `
     <div class="grp"><strong style="letter-spacing:.2em">ADKINE · EDIT</strong></div>
     <div class="grp">
+      <button class="ed-btn" id="edLogin">Sign in</button>
       <button class="ed-btn" id="edColors">Colours</button>
       <button class="ed-btn" id="edExit">Exit</button>
       <button class="ed-btn pri" id="edSave" disabled>Saved</button>
@@ -142,6 +143,7 @@
   document.body.appendChild(filePicker);
 
   function pickImage(path) {
+    if (!token) return say('Sign in first — button at the top right', 4000);
     filePicker.value = '';
     filePicker.onchange = async () => {
       const f = filePicker.files[0];
@@ -255,6 +257,7 @@
   const utf8b64 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 
   saveBtn.onclick = async () => {
+    if (!token) return say('Sign in first — button at the top right', 4000);
     saveBtn.disabled = true; saveBtn.textContent = 'Publishing…';
     try {
       await putFile('content/site.json', utf8b64(JSON.stringify(D(), null, 2)), 'Update site content');
@@ -290,16 +293,23 @@
     });
   }
 
-  /* ---------- boot ---------- */
-  (async () => {
-    say('Signing in with GitHub…', 20000);
+  /* ---------- sign in (must be a real click, or the popup is blocked) ---------- */
+  const loginBtn = bar.querySelector('#edLogin');
+  loginBtn.onclick = async () => {
+    loginBtn.textContent = 'Opening…'; loginBtn.disabled = true;
     try {
       token = await login();
-      say('Click any text to edit it', 4000);
-      buildPanel(); redraw();
-      addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+      loginBtn.textContent = 'Signed in';
+      say('Signed in — photos and Publish are ready', 3500);
     } catch (e) {
-      say(e.message, 8000);
+      loginBtn.textContent = 'Sign in'; loginBtn.disabled = false;
+      say(e.message, 7000);
     }
-  })();
+  };
+
+  /* ---------- boot: editing works straight away ---------- */
+  buildPanel();
+  redraw();
+  say('Click any text to edit it — sign in when you want to publish', 6000);
+  addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 })();
