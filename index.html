@@ -249,10 +249,10 @@ function render(d){
   const h = d.hero||{};
   if(h.backgroundVideo) document.getElementById('heroMedia').innerHTML = mediaEmbed(h.backgroundVideo,{bg:true});
   document.getElementById('heroInner').innerHTML = `
-    <div class="eyebrow reveal" data-path="hero.eyebrow">${esc(h.eyebrow)}</div>
-    <h1 class="reveal" data-d="1"><span data-path="hero.titleLine1">${esc(h.titleLine1)}</span><br><span data-path="hero.titleLine2">${esc(h.titleLine2)}</span> <em data-path="hero.titleAccent">${esc(h.titleAccent)}</em></h1>
-    <p class="reveal" data-d="2" data-path="hero.paragraph">${esc(h.paragraph)}</p>
-    <div class="btn-row reveal" data-d="3">
+    <div class="eyebrow reveal" data-move="hero.eyebrow" data-path="hero.eyebrow">${esc(h.eyebrow)}</div>
+    <h1 class="reveal" data-d="1" data-move="hero.title"><span data-path="hero.titleLine1">${esc(h.titleLine1)}</span><br><span data-path="hero.titleLine2">${esc(h.titleLine2)}</span> <em data-path="hero.titleAccent">${esc(h.titleAccent)}</em></h1>
+    <p class="reveal" data-d="2" data-move="hero.paragraph" data-path="hero.paragraph">${esc(h.paragraph)}</p>
+    <div class="btn-row reveal" data-d="3" data-move="hero.buttons">
       <a href="${esc(h.primaryLink)}" class="btn solid"><span data-path="hero.primaryLabel">${esc(h.primaryLabel)}</span></a>
       <a href="${esc(h.secondaryLink)}" class="btn"><span data-path="hero.secondaryLabel">${esc(h.secondaryLabel)}</span></a>
     </div>`;
@@ -263,7 +263,7 @@ function render(d){
 
   /* head helper */
   const head = (s, k) => `
-    <div class="sec-head">
+    <div class="sec-head" data-move="${k}.head">
       <div>
         <div class="sec-num reveal" data-path="${k}.label">${esc(s.label)}</div>
         <h2 class="reveal" data-d="1" data-path="${k}.heading">${esc(s.heading)}</h2>
@@ -309,14 +309,14 @@ function render(d){
   const a = d.about||{};
   document.getElementById('about').innerHTML = `
     <div class="a-wrap">
-      <div class="a-photo reveal" data-media="about.photo">
+      <div class="a-photo reveal" data-move="about.photo" data-media="about.photo">
         ${a.photo ? `<img src="${esc(a.photo)}" alt="${esc(a.heading)}">` : `<div class="ph-label">Portrait photo</div>`}
       </div>
-      <div class="a-text">
+      <div class="a-text" data-move="about.text">
         <div class="sec-num reveal" data-path="about.label">${esc(a.label)}</div>
         <h2 class="reveal" data-d="1" data-path="about.heading">${esc(a.heading)}</h2>
         ${(a.paragraphs||[]).map((p,i)=>`<p class="reveal" data-d="${i+2}" data-path="about.paragraphs.${i}">${esc(p)}</p>`).join('')}
-        <div class="stats reveal" data-d="4">
+        <div class="stats reveal" data-d="4" data-move="about.stats">
           ${(a.stats||[]).map((st,i)=>`<div class="stat"><b data-path="about.stats.${i}.value">${esc(st.value)}</b><span data-path="about.stats.${i}.label">${esc(st.label)}</span></div>`).join('')}
         </div>
       </div>
@@ -326,10 +326,10 @@ function render(d){
   const c = d.contact||{};
   document.getElementById('contact').innerHTML = `
     <div class="sec-num reveal" data-path="contact.label">${esc(c.label)}</div>
-    <h2 class="reveal" data-d="1">${String(c.heading||'').replace(/<br\s*\/?>/gi,'<br>').replace(/<(?!br>)/g,'&lt;')}</h2>
-    <p class="reveal" data-d="2" data-path="contact.intro">${esc(c.intro)}</p>
-    <a href="mailto:${esc(c.email)}" class="mail reveal" data-d="3" data-path="contact.email">${esc(c.email)}</a>
-    <div class="socials reveal" data-d="4">
+    <h2 class="reveal" data-d="1" data-move="contact.heading">${String(c.heading||'').replace(/<br\s*\/?>/gi,'<br>').replace(/<(?!br>)/g,'&lt;')}</h2>
+    <p class="reveal" data-d="2" data-move="contact.intro" data-path="contact.intro">${esc(c.intro)}</p>
+    <a href="mailto:${esc(c.email)}" class="mail reveal" data-d="3" data-move="contact.email" data-path="contact.email">${esc(c.email)}</a>
+    <div class="socials reveal" data-d="4" data-move="contact.socials">
       ${(c.socials||[]).map(s=>`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`).join('')}
       <a href="#top">Top</a>
     </div>`;
@@ -338,7 +338,27 @@ function render(d){
   const f = d.footer||{};
   document.getElementById('footer').innerHTML =
     `<div data-path="footer.left">${esc(f.left)}</div><div data-path="footer.right">${esc(f.right)}</div>`;
+
+  /* section order */
+  const foot = document.getElementById('footer');
+  (d.sectionOrder || ['work','gallery','services','about','contact']).forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) foot.parentNode.insertBefore(el, foot);
+  });
+
+  applyOffsets(d);
 }
+
+/* free-positioned blocks — desktop only, so phones keep the clean layout */
+function applyOffsets(d){
+  const o = d.offsets || {};
+  const on = innerWidth > 900;
+  document.querySelectorAll('[data-move]').forEach(el=>{
+    const v = o[el.dataset.move];
+    el.style.transform = (on && v && (v.x || v.y)) ? `translate(${v.x}px,${v.y}px)` : '';
+  });
+}
+addEventListener('resize', ()=>{ if(window.ADKINE) applyOffsets(window.ADKINE.data); });
 
 /* ---------- interactions (run after render) ---------- */
 function init(){
@@ -387,7 +407,7 @@ loadContent().then(d=>{
   render(d);
   init();
   // expose for the visual editor
-  window.ADKINE = { data:d, render, applyTheme, init };
+  window.ADKINE = { data:d, render, applyTheme, applyOffsets, init };
   if(EDIT){
     const s=document.createElement('script');
     s.src='/assets/editor.js?v=' + Date.now();
