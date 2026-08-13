@@ -5,6 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADKINE — Motion &amp; Vision</title>
 <meta name="description" content="ADKINE — cinematic video production and motion design for brands and small businesses.">
+<link rel="canonical" href="https://adkine.pages.dev/">
+
+<!-- Link previews (WhatsApp, Instagram DMs, LinkedIn, iMessage).
+     Social scrapers don't run JavaScript, so these stay in the HTML. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ADKINE">
+<meta property="og:title" content="ADKINE — Motion &amp; Vision">
+<meta property="og:description" content="Cinematic video production, motion design and colour for brands who want their story felt, not just seen.">
+<meta property="og:url" content="https://adkine.pages.dev/">
+<meta property="og:image" content="https://adkine.pages.dev/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ADKINE — Motion &amp; Vision">
+<meta name="twitter:description" content="Cinematic video production, motion design and colour.">
+<meta name="twitter:image" content="https://adkine.pages.dev/assets/og.png">
+<meta name="theme-color" content="#2E4057">
+
+<!-- Favicon: the ADKINE mark, inline so there's no extra request -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23FCFAF7'/%3E%3Ctext x='32' y='44' font-family='Helvetica,Arial,sans-serif' font-size='34' font-weight='700' text-anchor='middle' fill='%232E4057'%3EA%3C/text%3E%3C/svg%3E">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Inter:wght@300;400;500;600;800&display=swap" rel="stylesheet">
@@ -163,6 +184,17 @@ footer{background:var(--black);color:rgba(240,233,220,.42);padding:38px 5vw;disp
 .modal-inner iframe,.modal-inner video{width:100%;height:100%;border:0;object-fit:cover}
 .modal-ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--blue);font-size:12px;letter-spacing:.24em;text-transform:uppercase;text-align:center;padding:20px;line-height:2}
 .close{position:absolute;top:-46px;right:0;color:var(--beige-pale);font-size:11px;letter-spacing:.22em;text-transform:uppercase;cursor:pointer}
+
+/* Visitors who've asked their device to reduce motion get a still site */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;animation-iteration-count:1!important;
+    transition-duration:.001ms!important;scroll-behavior:auto!important;
+  }
+  .reveal{opacity:1!important;transform:none!important}
+  .marquee-track{animation:none!important}
+  .scroll-hint::after{animation:none!important}
+}
 </style>
 </head>
 <body>
@@ -183,11 +215,13 @@ footer{background:var(--black);color:rgba(240,233,220,.42);padding:38px 5vw;disp
 
 <div class="marquee"><div class="marquee-track" id="marquee"></div></div>
 
-<section class="work" id="work"></section>
-<section class="gallery" id="gallery"></section>
-<section class="services" id="services"></section>
-<section class="about" id="about"></section>
-<section class="contact" id="contact"></section>
+<main id="main">
+  <section class="work" id="work"></section>
+  <section class="gallery" id="gallery"></section>
+  <section class="services" id="services"></section>
+  <section class="about" id="about"></section>
+  <section class="contact" id="contact"></section>
+</main>
 <footer id="footer"></footer>
 
 <div class="modal" id="modal">
@@ -368,10 +402,10 @@ function render(d){
     `<div data-path="footer.left">${esc(f.left)}</div><div data-path="footer.right">${esc(f.right)}</div>`;
 
   /* section order */
-  const foot = document.getElementById('footer');
+  const main = document.getElementById('main');
   (d.sectionOrder || ['work','gallery','services','about','contact']).forEach(id=>{
     const el = document.getElementById(id);
-    if(el) foot.parentNode.insertBefore(el, foot);
+    if(el && main) main.appendChild(el);
   });
 
   applyOffsets(d);
