@@ -52,7 +52,7 @@
       border:1px dashed rgba(46,64,87,.4);background:none;color:#2E4057;
       font:500 10px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;cursor:pointer}
     .ed-add:hover{background:rgba(147,174,201,.12)}
-    .ed-panel{position:fixed;top:56px;right:0;width:260px;bottom:0;z-index:9999;
+    .ed-panel{position:fixed;top:56px;right:0;width:300px;bottom:0;z-index:9999;
       background:#FCFAF7;border-left:1px solid rgba(46,64,87,.18);padding:22px;
       overflow:auto;font:400 12px/1.6 Inter,sans-serif;transform:translateX(100%);
       transition:transform .35s cubic-bezier(.22,1,.36,1)}
@@ -62,6 +62,22 @@
     .ed-row{display:flex;justify-content:space-between;align-items:center;
       padding:7px 0;border-bottom:1px solid rgba(46,64,87,.09)}
     .ed-row input[type=color]{width:34px;height:24px;border:0;background:none;cursor:pointer}
+    .ed-panel h4{margin-top:26px}
+    .ed-panel h4:first-child{margin-top:0}
+    .ed-field{padding:11px 0;border-bottom:1px solid rgba(46,64,87,.09)}
+    .ed-field label{display:flex;justify-content:space-between;align-items:baseline;
+      font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#2E4057;
+      font-weight:500;margin-bottom:7px}
+    .ed-field label b{font-weight:400;color:rgba(35,38,44,.55);text-transform:none;letter-spacing:0}
+    .ed-field select{width:100%;padding:8px 9px;border:1px solid rgba(46,64,87,.2);
+      background:#fff;font-family:inherit;font-size:13px;color:#23262C;border-radius:2px}
+    .ed-field input[type=range]{width:100%;accent-color:#2E4057}
+    .ed-preview{font-size:22px;line-height:1.15;color:#16181C;margin-top:8px;
+      padding:10px 0;border-top:1px solid rgba(46,64,87,.09)}
+    .ed-reset{width:100%;margin-top:22px;padding:12px;border:1px solid rgba(46,64,87,.3);
+      background:none;font:500 10px/1 Inter,sans-serif;letter-spacing:.2em;
+      text-transform:uppercase;color:#2E4057;cursor:pointer;border-radius:2px}
+    .ed-reset:hover{background:#2E4057;color:#FCFAF7}
     .ed-guides{position:fixed;inset:0;z-index:9998;pointer-events:none}
     .ed-ins{position:fixed;background:#2E4057;border-radius:2px;box-shadow:0 0 0 2px rgba(46,64,87,.22);display:none}
     .ed-ins::before,.ed-ins::after{content:'';position:absolute;width:7px;height:7px;
@@ -109,7 +125,7 @@
     <div class="grp">
       <button class="ed-btn" id="edFree">Free move: off</button>
       <button class="ed-btn" id="edLogin">Sign in</button>
-      <button class="ed-btn" id="edColors">Colours</button>
+      <button class="ed-btn" id="edColors">Design</button>
       <button class="ed-btn" id="edExit">Exit</button>
       <button class="ed-btn pri" id="edSave" disabled>Saved</button>
     </div>`;
@@ -132,10 +148,84 @@
   document.body.appendChild(panel);
   const labels = { blue:'Pastel blue', navy:'Deep blue', beige:'Beige',
                    beigePale:'Beige pale', bluePale:'Blue pale', white:'White', black:'Black' };
+
+  const DISPLAY_FONTS = ['Cormorant Garamond','Playfair Display','DM Serif Display',
+                         'Bodoni Moda','Marcellus','Italiana','Libre Baskerville',
+                         'Syne','Space Grotesk'];
+  const BODY_FONTS    = ['Inter','DM Sans','Work Sans','Manrope','Karla','Jost','IBM Plex Sans'];
+
+  const STYLE_DEFAULTS = { displayFont:'Cormorant Garamond', bodyFont:'Inter',
+                           headScale:1, bodyScale:1, spaceScale:1, tracking:-0.02 };
+
+  const sliders = [
+    { key:'headScale',  label:'Heading size',   min:0.6,  max:1.6,  step:0.02, fmt:v=>Math.round(v*100)+'%' },
+    { key:'bodyScale',  label:'Text size',      min:0.8,  max:1.5,  step:0.02, fmt:v=>Math.round(v*100)+'%' },
+    { key:'tracking',   label:'Letter spacing', min:-0.06,max:0.12, step:0.005,fmt:v=>v.toFixed(3)+'em' },
+    { key:'spaceScale', label:'Section spacing',min:0.5,  max:1.8,  step:0.05, fmt:v=>Math.round(v*100)+'%' },
+  ];
+
+  const S = () => (D().style ||= {});
+  const sv = k => S()[k] ?? STYLE_DEFAULTS[k];
+
   function buildPanel() {
-    panel.innerHTML = '<h4>Colours</h4>' + Object.keys(labels).map(k =>
-      `<div class="ed-row"><span>${labels[k]}</span>
-       <input type="color" data-c="${k}" value="${D().theme[k]}"></div>`).join('');
+    const opts = (list, cur) => list.map(f =>
+      `<option value="${f}"${f===cur?' selected':''}>${f}</option>`).join('');
+
+    panel.innerHTML = `
+      <h4>Fonts</h4>
+      <div class="ed-field">
+        <label>Headings <b>display</b></label>
+        <select data-f="displayFont">${opts(DISPLAY_FONTS, sv('displayFont'))}</select>
+        <div class="ed-preview" id="pvHead">Cinematic work</div>
+      </div>
+      <div class="ed-field">
+        <label>Body text <b>everything else</b></label>
+        <select data-f="bodyFont">${opts(BODY_FONTS, sv('bodyFont'))}</select>
+        <div class="ed-preview" id="pvBody" style="font-size:14px">
+          Video production and motion design.</div>
+      </div>
+
+      <h4>Size &amp; spacing</h4>
+      ${sliders.map(s => `
+        <div class="ed-field">
+          <label>${s.label} <b id="v-${s.key}">${s.fmt(sv(s.key))}</b></label>
+          <input type="range" data-s="${s.key}" min="${s.min}" max="${s.max}"
+                 step="${s.step}" value="${sv(s.key)}">
+        </div>`).join('')}
+
+      <h4>Colours</h4>
+      ${Object.keys(labels).map(k =>
+        `<div class="ed-row"><span>${labels[k]}</span>
+         <input type="color" data-c="${k}" value="${D().theme[k]}"></div>`).join('')}
+
+      <button class="ed-reset" id="edResetStyle">Reset design to default</button>
+    `;
+
+    const refreshPreview = () => {
+      const st = window.ADKINE.FONT_STACK;
+      panel.querySelector('#pvHead').style.fontFamily = st[sv('displayFont')] || 'serif';
+      panel.querySelector('#pvBody').style.fontFamily = st[sv('bodyFont')] || 'sans-serif';
+    };
+
+    panel.querySelectorAll('select[data-f]').forEach(sel => {
+      sel.onchange = () => {
+        S()[sel.dataset.f] = sel.value;
+        window.ADKINE.applyStyle(D());
+        refreshPreview(); markDirty();
+      };
+    });
+
+    panel.querySelectorAll('input[data-s]').forEach(r => {
+      r.oninput = () => {
+        const key = r.dataset.s, val = parseFloat(r.value);
+        S()[key] = val;
+        const meta = sliders.find(s => s.key === key);
+        panel.querySelector('#v-' + key).textContent = meta.fmt(val);
+        window.ADKINE.applyStyle(D());
+        markDirty();
+      };
+    });
+
     panel.querySelectorAll('input[data-c]').forEach(i => {
       i.oninput = () => {
         D().theme[i.dataset.c] = i.value;
@@ -143,6 +233,16 @@
         markDirty();
       };
     });
+
+    panel.querySelector('#edResetStyle').onclick = () => {
+      if (!confirm('Reset fonts, sizes and spacing to the original design?')) return;
+      D().style = { ...STYLE_DEFAULTS };
+      window.ADKINE.applyStyle(D());
+      buildPanel(); panel.classList.add('open');
+      markDirty(); say('Design reset');
+    };
+
+    refreshPreview();
   }
   bar.querySelector('#edColors').onclick = () => panel.classList.toggle('open');
 
@@ -641,6 +741,7 @@
   if (!Array.isArray(D().sectionOrder))
     D().sectionOrder = ['work','gallery','services','about','contact'];
   if (!D().offsets || typeof D().offsets !== 'object') D().offsets = {};
+  if (!D().style || typeof D().style !== 'object') D().style = {};
   baseline = JSON.stringify(D());
   buildPanel();
   redraw();
