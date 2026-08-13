@@ -223,10 +223,33 @@ function applyTheme(t={}){
   for(const k in map) if(t[k]) document.documentElement.style.setProperty(map[k], t[k]);
 }
 
+/* ---------- video links: accept ANY youtube/vimeo url ---------- */
+function videoInfo(url){
+  if(!url) return null;
+  const s = String(url).trim();
+  let m;
+  if((m = s.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{6,})/)))
+    return {type:'yt', id:m[1]};
+  if((m = s.match(/(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/)))
+    return {type:'vimeo', id:m[1]};
+  return null;
+}
+function embedUrl(url){
+  const v = videoInfo(url);
+  if(!v) return url;
+  return v.type === 'yt'
+    ? `https://www.youtube.com/embed/${v.id}`
+    : `https://player.vimeo.com/video/${v.id}`;
+}
+function posterUrl(url){
+  const v = videoInfo(url);
+  return (v && v.type === 'yt') ? `https://img.youtube.com/vi/${v.id}/hqdefault.jpg` : '';
+}
+
 /* ---------- media helper: url → embed or <img>/<video> ---------- */
 function mediaEmbed(url, opts={}){
   if(!url) return '';
-  const u = esc(url);
+  const u = esc(embedUrl(url));
   if(/\.(mp4|webm|mov)$/i.test(url)){
     const a = opts.bg ? 'autoplay muted loop playsinline' : 'controls playsinline';
     return `<video src="${u}" ${a}></video>`;
@@ -274,16 +297,20 @@ function render(d){
   /* work */
   const w = d.work||{};
   document.getElementById('work').innerHTML = head(w,'work') + `<div class="work-grid">` +
-    (w.projects||[]).map((p,i)=>`
+    (w.projects||[]).map((p,i)=>{
+      const poster = p.thumbnail || posterUrl(p.videoUrl);   // YouTube gives us a still for free
+      return `
       <article class="project reveal" ${i%2?'data-d="1"':''} data-video="${esc(p.videoUrl)}">
         <div class="thumb" data-media="work.projects.${i}.thumbnail" data-kind="project"
-             data-video-path="work.projects.${i}.videoUrl" data-del="work.projects.${i}">
-          ${p.thumbnail ? `<img src="${esc(p.thumbnail)}" alt="${esc(p.title)}">`
-                        : `<div class="ph-label"><b>${String(i+1).padStart(2,'0')}</b>Add thumbnail</div>`}
+             data-video-path="work.projects.${i}.videoUrl" data-del="work.projects.${i}"
+             data-hasvideo="${p.videoUrl ? '1' : ''}">
+          ${poster ? `<img src="${esc(poster)}" alt="${esc(p.title)}">`
+                   : `<div class="ph-label"><b>${String(i+1).padStart(2,'0')}</b>Add thumbnail</div>`}
           <div class="play"></div>
         </div>
         <div class="p-meta"><h3 data-path="work.projects.${i}.title">${esc(p.title)}</h3><span data-path="work.projects.${i}.category">${esc(p.category)}</span></div>
-      </article>`).join('') + `</div>`;
+      </article>`;
+    }).join('') + `</div>`;
 
   /* gallery */
   const g = d.gallery||{};
