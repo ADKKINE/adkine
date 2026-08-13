@@ -390,7 +390,7 @@ loadContent().then(d=>{
   window.ADKINE = { data:d, render, applyTheme, init };
   if(EDIT){
     const s=document.createElement('script');
-    s.src='/assets/editor.js';
+    s.src='/assets/editor.js?v=' + Date.now();
     document.body.appendChild(s);
   }
 });
