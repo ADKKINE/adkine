@@ -211,7 +211,8 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 /* ---------- load content ---------- */
 async function loadContent(){
   try{
-    const r = await fetch('content/site.json', {cache:'no-store'});
+    // cache-bust: 'no-store' only skips the BROWSER cache, not Cloudflare's edge
+    const r = await fetch('content/site.json?t=' + Date.now(), {cache:'no-store'});
     if(r.ok) return await r.json();
   }catch(e){/* falls through */}
   return JSON.parse(document.getElementById('fallback').textContent);

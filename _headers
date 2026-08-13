@@ -1,0 +1,24 @@
+# Cloudflare Pages caching rules
+#
+# The content file and the editor must never be served stale — a stale
+# site.json means the editor loads old content and then publishes it back
+# over newer content, which looks like "my changes didn't save".
+
+/content/site.json
+  Cache-Control: no-store, max-age=0
+
+/assets/editor.js
+  Cache-Control: no-store, max-age=0
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/admin/*
+  Cache-Control: no-cache
+
+# Uploaded media is content-addressed by timestamp, so it can cache hard
+/assets/uploads/*
+  Cache-Control: public, max-age=31536000, immutable
