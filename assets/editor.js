@@ -562,14 +562,37 @@
   }
 
   const utf8b64 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+  const b64utf8 = b => new TextDecoder().decode(
+    Uint8Array.from(atob(b.replace(/\s/g, '')), c => c.charCodeAt(0)));
+
+  // what the page held when the editor opened — used to detect stale loads
+  let baseline = null;
 
   saveBtn.onclick = async () => {
     if (!token) return say('Sign in first — button at the top right', 4000);
     saveBtn.disabled = true; saveBtn.textContent = 'Publishing…';
     try {
+      // Guard: if what's stored differs from what this editor loaded, the page
+      // was served a stale copy and publishing would wipe newer changes.
+      if (baseline !== null) {
+        try {
+          const live = await gh(`/repos/${REPO}/contents/content/site.json?ref=${BRANCH}`);
+          const stored = b64utf8(live.content);
+          if (JSON.stringify(JSON.parse(stored)) !== baseline) {
+            const ok = confirm(
+              'Heads up: the saved content is newer than what this page loaded ' +
+              '(you probably edited from another tab or device).\n\n' +
+              'Publishing now will overwrite those newer changes.\n\n' +
+              'OK = publish anyway   ·   Cancel = stop, then reload the page to get the latest.');
+            if (!ok) { saveBtn.disabled = false; saveBtn.textContent = 'Publish'; return; }
+          }
+        } catch { /* first save, or file missing — carry on */ }
+      }
+
       await putFile('content/site.json', utf8b64(JSON.stringify(D(), null, 2)), 'Update site content');
+      baseline = JSON.stringify(D());
       dirty = false; saveBtn.textContent = 'Saved';
-      say('Published — live in about 30 seconds', 4000);
+      say('Published ✓ — the live site updates in about 30 seconds', 5000);
     } catch (e) {
       saveBtn.disabled = false; saveBtn.textContent = 'Publish';
       say('Failed: ' + e.message, 5000);
@@ -618,6 +641,7 @@
   if (!Array.isArray(D().sectionOrder))
     D().sectionOrder = ['work','gallery','services','about','contact'];
   if (!D().offsets || typeof D().offsets !== 'object') D().offsets = {};
+  baseline = JSON.stringify(D());
   buildPanel();
   redraw();
   say('Click any text to edit it — sign in when you want to publish', 6000);
