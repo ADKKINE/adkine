@@ -249,12 +249,12 @@ function render(d){
   const h = d.hero||{};
   if(h.backgroundVideo) document.getElementById('heroMedia').innerHTML = mediaEmbed(h.backgroundVideo,{bg:true});
   document.getElementById('heroInner').innerHTML = `
-    <div class="eyebrow reveal">${esc(h.eyebrow)}</div>
-    <h1 class="reveal" data-d="1">${esc(h.titleLine1)}<br>${esc(h.titleLine2)} <em>${esc(h.titleAccent)}</em></h1>
-    <p class="reveal" data-d="2">${esc(h.paragraph)}</p>
+    <div class="eyebrow reveal" data-path="hero.eyebrow">${esc(h.eyebrow)}</div>
+    <h1 class="reveal" data-d="1"><span data-path="hero.titleLine1">${esc(h.titleLine1)}</span><br><span data-path="hero.titleLine2">${esc(h.titleLine2)}</span> <em data-path="hero.titleAccent">${esc(h.titleAccent)}</em></h1>
+    <p class="reveal" data-d="2" data-path="hero.paragraph">${esc(h.paragraph)}</p>
     <div class="btn-row reveal" data-d="3">
-      <a href="${esc(h.primaryLink)}" class="btn solid"><span>${esc(h.primaryLabel)}</span></a>
-      <a href="${esc(h.secondaryLink)}" class="btn"><span>${esc(h.secondaryLabel)}</span></a>
+      <a href="${esc(h.primaryLink)}" class="btn solid"><span data-path="hero.primaryLabel">${esc(h.primaryLabel)}</span></a>
+      <a href="${esc(h.secondaryLink)}" class="btn"><span data-path="hero.secondaryLabel">${esc(h.secondaryLabel)}</span></a>
     </div>`;
 
   /* marquee (doubled for seamless loop) */
@@ -262,61 +262,62 @@ function render(d){
   document.getElementById('marquee').innerHTML = words + words;
 
   /* head helper */
-  const head = (s) => `
+  const head = (s, k) => `
     <div class="sec-head">
       <div>
-        <div class="sec-num reveal">${esc(s.label)}</div>
-        <h2 class="reveal" data-d="1">${esc(s.heading)}</h2>
+        <div class="sec-num reveal" data-path="${k}.label">${esc(s.label)}</div>
+        <h2 class="reveal" data-d="1" data-path="${k}.heading">${esc(s.heading)}</h2>
       </div>
-      <p class="reveal" data-d="2">${esc(s.intro)}</p>
+      <p class="reveal" data-d="2" data-path="${k}.intro">${esc(s.intro)}</p>
     </div>`;
 
   /* work */
   const w = d.work||{};
-  document.getElementById('work').innerHTML = head(w) + `<div class="work-grid">` +
+  document.getElementById('work').innerHTML = head(w,'work') + `<div class="work-grid">` +
     (w.projects||[]).map((p,i)=>`
       <article class="project reveal" ${i%2?'data-d="1"':''} data-video="${esc(p.videoUrl)}">
-        <div class="thumb">
+        <div class="thumb" data-media="work.projects.${i}.thumbnail" data-kind="project"
+             data-video-path="work.projects.${i}.videoUrl" data-del="work.projects.${i}">
           ${p.thumbnail ? `<img src="${esc(p.thumbnail)}" alt="${esc(p.title)}">`
                         : `<div class="ph-label"><b>${String(i+1).padStart(2,'0')}</b>Add thumbnail</div>`}
           <div class="play"></div>
         </div>
-        <div class="p-meta"><h3>${esc(p.title)}</h3><span>${esc(p.category)}</span></div>
+        <div class="p-meta"><h3 data-path="work.projects.${i}.title">${esc(p.title)}</h3><span data-path="work.projects.${i}.category">${esc(p.category)}</span></div>
       </article>`).join('') + `</div>`;
 
   /* gallery */
   const g = d.gallery||{};
-  document.getElementById('gallery').innerHTML = head(g) + `<div class="g-grid">` +
+  document.getElementById('gallery').innerHTML = head(g,'gallery') + `<div class="g-grid">` +
     (g.photos||[]).map((p,i)=>`
-      <div class="g-item reveal" data-d="${i%4}">
+      <div class="g-item reveal" data-d="${i%4}" data-media="gallery.photos.${i}.image" data-del="gallery.photos.${i}">
         ${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.alt)}">`
                   : `<div class="ph-label">${esc(p.alt||'Photo')}</div>`}
       </div>`).join('') + `</div>`;
 
   /* services */
   const s = d.services||{};
-  document.getElementById('services').innerHTML = head(s) + `<div class="s-grid">` +
+  document.getElementById('services').innerHTML = head(s,'services') + `<div class="s-grid">` +
     (s.items||[]).map((c,i)=>`
       <div class="s-card reveal" ${i?'data-d="1"':''}>
-        <div class="n">${esc(c.number)}</div>
-        <h3>${esc(c.title)}</h3>
-        <p>${esc(c.description)}</p>
-        <ul>${(c.bullets||[]).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
+        <div class="n" data-path="services.items.${i}.number">${esc(c.number)}</div>
+        <h3 data-path="services.items.${i}.title">${esc(c.title)}</h3>
+        <p data-path="services.items.${i}.description">${esc(c.description)}</p>
+        <ul>${(c.bullets||[]).map((b,j)=>`<li data-path="services.items.${i}.bullets.${j}">${esc(b)}</li>`).join('')}</ul>
       </div>`).join('') + `</div>`;
 
   /* about */
   const a = d.about||{};
   document.getElementById('about').innerHTML = `
     <div class="a-wrap">
-      <div class="a-photo reveal">
+      <div class="a-photo reveal" data-media="about.photo">
         ${a.photo ? `<img src="${esc(a.photo)}" alt="${esc(a.heading)}">` : `<div class="ph-label">Portrait photo</div>`}
       </div>
       <div class="a-text">
-        <div class="sec-num reveal">${esc(a.label)}</div>
-        <h2 class="reveal" data-d="1">${esc(a.heading)}</h2>
-        ${(a.paragraphs||[]).map((p,i)=>`<p class="reveal" data-d="${i+2}">${esc(p)}</p>`).join('')}
+        <div class="sec-num reveal" data-path="about.label">${esc(a.label)}</div>
+        <h2 class="reveal" data-d="1" data-path="about.heading">${esc(a.heading)}</h2>
+        ${(a.paragraphs||[]).map((p,i)=>`<p class="reveal" data-d="${i+2}" data-path="about.paragraphs.${i}">${esc(p)}</p>`).join('')}
         <div class="stats reveal" data-d="4">
-          ${(a.stats||[]).map(st=>`<div class="stat"><b>${esc(st.value)}</b><span>${esc(st.label)}</span></div>`).join('')}
+          ${(a.stats||[]).map((st,i)=>`<div class="stat"><b data-path="about.stats.${i}.value">${esc(st.value)}</b><span data-path="about.stats.${i}.label">${esc(st.label)}</span></div>`).join('')}
         </div>
       </div>
     </div>`;
@@ -324,10 +325,10 @@ function render(d){
   /* contact — heading allows <br> */
   const c = d.contact||{};
   document.getElementById('contact').innerHTML = `
-    <div class="sec-num reveal">${esc(c.label)}</div>
+    <div class="sec-num reveal" data-path="contact.label">${esc(c.label)}</div>
     <h2 class="reveal" data-d="1">${String(c.heading||'').replace(/<br\s*\/?>/gi,'<br>').replace(/<(?!br>)/g,'&lt;')}</h2>
-    <p class="reveal" data-d="2">${esc(c.intro)}</p>
-    <a href="mailto:${esc(c.email)}" class="mail reveal" data-d="3">${esc(c.email)}</a>
+    <p class="reveal" data-d="2" data-path="contact.intro">${esc(c.intro)}</p>
+    <a href="mailto:${esc(c.email)}" class="mail reveal" data-d="3" data-path="contact.email">${esc(c.email)}</a>
     <div class="socials reveal" data-d="4">
       ${(c.socials||[]).map(s=>`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`).join('')}
       <a href="#top">Top</a>
@@ -335,7 +336,8 @@ function render(d){
 
   /* footer */
   const f = d.footer||{};
-  document.getElementById('footer').innerHTML = `<div>${esc(f.left)}</div><div>${esc(f.right)}</div>`;
+  document.getElementById('footer').innerHTML =
+    `<div data-path="footer.left">${esc(f.left)}</div><div data-path="footer.right">${esc(f.right)}</div>`;
 }
 
 /* ---------- interactions (run after render) ---------- */
@@ -363,6 +365,7 @@ function init(){
 
   const modal=document.getElementById('modal'),body=document.getElementById('modalBody');
   const defaultMsg=body.innerHTML;
+  if(EDIT) return;               // in edit mode the popup player stays out of the way
   document.querySelectorAll('.project').forEach(p=>{
     p.onclick=()=>{
       const src=p.dataset.video;
@@ -377,7 +380,20 @@ function init(){
   addEventListener('keydown',e=>{if(e.key==='Escape')shut()});
 }
 
-loadContent().then(d=>{render(d);init()});
+/* ---------- boot ---------- */
+const EDIT = new URLSearchParams(location.search).has('edit');
+
+loadContent().then(d=>{
+  render(d);
+  init();
+  // expose for the visual editor
+  window.ADKINE = { data:d, render, applyTheme, init };
+  if(EDIT){
+    const s=document.createElement('script');
+    s.src='/assets/editor.js';
+    document.body.appendChild(s);
+  }
+});
 </script>
 </body>
 </html>
