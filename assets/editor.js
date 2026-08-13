@@ -72,6 +72,15 @@
     .ed-g.h{height:1px;left:0;right:0}
     .ed-g.v{width:1px;top:0;bottom:0}
     .ed-drag{opacity:.35!important}
+    body.ed-free [data-move]{outline:1px dashed rgba(147,174,201,.75);cursor:move}
+    body.ed-free [data-move]:hover{outline:1px solid #2E4057;background:rgba(147,174,201,.07)}
+    body.ed-free [data-path]{cursor:move}
+    .ed-moving{outline:2px solid #2E4057!important;z-index:70;position:relative}
+    .ed-snap{position:fixed;background:#8B0000;display:none;z-index:9998;pointer-events:none}
+    .ed-snap.h{height:1px;left:0;right:0}
+    .ed-snap.v{width:1px;top:0;bottom:0}
+    .ed-pos{position:fixed;z-index:10001;background:#16181C;color:#F0E9DC;
+      font:400 11px/1 Inter,sans-serif;padding:6px 9px;border-radius:2px;display:none}
     .ed-grab{cursor:grab}
     .ed-sec-h{position:absolute;top:14px;left:5vw;z-index:60}
     .ed-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
@@ -98,6 +107,7 @@
   bar.innerHTML = `
     <div class="grp"><strong style="letter-spacing:.2em">ADKINE · EDIT</strong></div>
     <div class="grp">
+      <button class="ed-btn" id="edFree">Free move: off</button>
       <button class="ed-btn" id="edLogin">Sign in</button>
       <button class="ed-btn" id="edColors">Colours</button>
       <button class="ed-btn" id="edExit">Exit</button>
@@ -397,12 +407,123 @@
     });
   }
 
+  /* ============================================================
+     FREE MOVE — drag any block anywhere, with snap guides
+     ============================================================ */
+  const snapV = document.createElement('div'); snapV.className = 'ed-snap v';
+  const snapH = document.createElement('div'); snapH.className = 'ed-snap h';
+  const readout = document.createElement('div'); readout.className = 'ed-pos';
+  layer.append(snapV, snapH);
+  document.body.appendChild(readout);
+
+  let freeMode = false;
+  const freeBtn = bar.querySelector('#edFree');
+
+  freeBtn.onclick = () => {
+    freeMode = !freeMode;
+    document.body.classList.toggle('ed-free', freeMode);
+    freeBtn.textContent = 'Free move: ' + (freeMode ? 'ON' : 'off');
+    freeBtn.classList.toggle('pri', freeMode);
+    // text editing off while moving, so drags don't select words
+    document.querySelectorAll('[data-path]').forEach(el => el.contentEditable = String(!freeMode));
+    say(freeMode
+      ? 'Drag any block. Double-click a block to snap it back.'
+      : 'Free move off — text editing is back', 4000);
+  };
+
+  const SNAP = 7;
+
+  function candidates(moving) {
+    const xs = [], ys = [];
+    document.querySelectorAll('[data-move]').forEach(el => {
+      if (el === moving || moving.contains(el) || el.contains(moving)) return;
+      const r = el.getBoundingClientRect();
+      if (!r.width) return;
+      xs.push(r.left, r.left + r.width / 2, r.right);
+      ys.push(r.top, r.top + r.height / 2, r.bottom);
+    });
+    // page gutters (5vw) and centre
+    const g = innerWidth * 0.05;
+    xs.push(g, innerWidth / 2, innerWidth - g);
+    return { xs, ys };
+  }
+
+  function startFreeDrag(el, e) {
+    e.preventDefault();
+    const key = el.dataset.move;
+    const off = (D().offsets ||= {});
+    const cur = off[key] || { x: 0, y: 0 };
+    const sx = e.clientX, sy = e.clientY;
+    const { xs, ys } = candidates(el);
+    el.classList.add('ed-moving');
+    readout.style.display = 'block';
+
+    const move = ev => {
+      let dx = cur.x + (ev.clientX - sx);
+      let dy = cur.y + (ev.clientY - sy);
+
+      // provisional position, then look for a snap
+      el.style.transform = `translate(${dx}px,${dy}px)`;
+      const r = el.getBoundingClientRect();
+      const edgesX = [r.left, r.left + r.width / 2, r.right];
+      const edgesY = [r.top, r.top + r.height / 2, r.bottom];
+
+      let hitX = null, hitY = null;
+      for (const ex of edgesX) for (const cx of xs)
+        if (Math.abs(ex - cx) < SNAP) { dx += cx - ex; hitX = cx; break; }
+      for (const ey of edgesY) for (const cy of ys)
+        if (Math.abs(ey - cy) < SNAP) { dy += cy - ey; hitY = cy; break; }
+
+      el.style.transform = `translate(${Math.round(dx)}px,${Math.round(dy)}px)`;
+
+      snapV.style.display = hitX === null ? 'none' : 'block';
+      if (hitX !== null) snapV.style.left = hitX + 'px';
+      snapH.style.display = hitY === null ? 'none' : 'block';
+      if (hitY !== null) snapH.style.top = hitY + 'px';
+
+      readout.style.left = (ev.clientX + 16) + 'px';
+      readout.style.top = (ev.clientY + 16) + 'px';
+      readout.textContent = `${Math.round(dx)}, ${Math.round(dy)}`;
+
+      el._pending = { x: Math.round(dx), y: Math.round(dy) };
+    };
+
+    const up = () => {
+      removeEventListener('mousemove', move);
+      removeEventListener('mouseup', up);
+      el.classList.remove('ed-moving');
+      snapV.style.display = snapH.style.display = readout.style.display = 'none';
+      if (el._pending) { off[key] = el._pending; delete el._pending; markDirty(); }
+    };
+    addEventListener('mousemove', move);
+    addEventListener('mouseup', up);
+  }
+
+  function wireFree() {
+    document.querySelectorAll('[data-move]').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        if (!freeMode || e.button !== 0) return;
+        if (e.target.closest('.ed-chip, .ed-tag')) return;
+        startFreeDrag(el, e);
+      });
+      el.addEventListener('dblclick', e => {
+        if (!freeMode) return;
+        e.preventDefault();
+        const off = (D().offsets ||= {});
+        delete off[el.dataset.move];
+        el.style.transform = '';
+        markDirty(); say('Snapped back');
+      });
+    });
+  }
+
   /* ---------- redraw ---------- */
   function redraw() {
     const y = scrollY;
     window.ADKINE.render(D());
     document.querySelectorAll('.reveal').forEach(e => e.classList.add('in'));
-    wireText(); wireMedia(); wireAdders(); wireSortables();
+    wireText(); wireMedia(); wireAdders(); wireSortables(); wireFree();
+    if (freeMode) document.querySelectorAll('[data-path]').forEach(el => el.contentEditable = 'false');
     scrollTo(0, y);
   }
 
@@ -488,6 +609,7 @@
   /* ---------- boot: editing works straight away ---------- */
   if (!Array.isArray(D().sectionOrder))
     D().sectionOrder = ['work','gallery','services','about','contact'];
+  if (!D().offsets || typeof D().offsets !== 'object') D().offsets = {};
   buildPanel();
   redraw();
   say('Click any text to edit it — sign in when you want to publish', 6000);
