@@ -192,7 +192,10 @@
       const tag = document.createElement('div');
       tag.className = 'ed-tag';
       const btns = [`<button class="ed-chip" data-a="img">${get(D(), path) ? 'Replace' : 'Add'} photo</button>`];
-      if (kind === 'project') btns.push('<button class="ed-chip" data-a="vid">Video link</button>');
+      if (kind === 'project') {
+        const has = el.dataset.hasvideo;
+        btns.push(`<button class="ed-chip" data-a="vid" ${has ? 'style="background:#2E4057"' : ''}>${has ? '✓ Video' : 'Video link'}</button>`);
+      }
       if (el.dataset.del) btns.push('<button class="ed-chip del" data-a="del">Delete</button>');
       tag.innerHTML = btns.join('');
       el.appendChild(tag);
@@ -205,8 +208,13 @@
           if (a === 'vid') {
             const vp = el.dataset.videoPath;
             const cur = get(D(), vp) || '';
-            const v = prompt('Paste the YouTube or Vimeo EMBED link:\n\nhttps://www.youtube.com/embed/XXXX\nhttps://player.vimeo.com/video/XXXX', cur);
-            if (v !== null) { set(D(), vp, v.trim()); markDirty(); redraw(); }
+            const v = prompt('Paste any YouTube or Vimeo link — the normal one from the address bar is fine.\n\nLeave empty to remove the video.', cur);
+            if (v !== null) {
+              const url = v.trim();
+              set(D(), vp, url);
+              markDirty(); redraw();
+              say(url ? 'Video added' : 'Video removed');
+            }
           }
           if (a === 'del') {
             const [lp, i] = splitIndex(el.dataset.del);
