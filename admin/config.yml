@@ -1,0 +1,191 @@
+# =====================================================================
+#  ADKINE — Admin panel configuration
+#  Edit the three CAPITALISED values below during setup, nothing else.
+# =====================================================================
+backend:
+  name: github
+  repo: ADKKINE/adkine
+  branch: main
+  base_url: https://YOUR-WORKER.workers.dev # <-- change to your auth worker URL
+
+media_folder: "assets/uploads"
+public_folder: "/assets/uploads"
+
+publish_mode: simple
+
+collections:
+  - name: site
+    label: "Website"
+    files:
+      # ---------------------------------------------------------------
+      - name: content
+        label: "All Site Content"
+        file: "content/site.json"
+        format: json
+        description: "Everything on the site. Edit, press Save, it goes live."
+        fields:
+
+          # ---- BRAND ----
+          - label: "Brand"
+            name: brand
+            widget: object
+            collapsed: true
+            fields:
+              - { label: "Logo — first part", name: logoStart, widget: string }
+              - { label: "Logo — middle (blue)", name: logoMiddle, widget: string }
+              - { label: "Logo — last part", name: logoEnd, widget: string }
+              - { label: "Tagline", name: tagline, widget: string }
+              - { label: "Browser tab title", name: pageTitle, widget: string }
+
+          # ---- COLORS ----
+          - label: "Colours"
+            name: theme
+            widget: object
+            collapsed: true
+            fields:
+              - { label: "Pastel blue", name: blue, widget: color }
+              - { label: "Deep blue", name: navy, widget: color }
+              - { label: "Beige", name: beige, widget: color }
+              - { label: "Beige — pale", name: beigePale, widget: color }
+              - { label: "Blue — pale", name: bluePale, widget: color }
+              - { label: "White", name: white, widget: color }
+              - { label: "Black", name: black, widget: color }
+
+          # ---- NAV ----
+          - label: "Menu links"
+            name: nav
+            widget: list
+            collapsed: true
+            fields:
+              - { label: "Label", name: label, widget: string }
+              - { label: "Link", name: link, widget: string, hint: "e.g. #work" }
+
+          # ---- HERO ----
+          - label: "Hero (top of page)"
+            name: hero
+            widget: object
+            fields:
+              - { label: "Small line above title", name: eyebrow, widget: string }
+              - { label: "Title — line 1", name: titleLine1, widget: string }
+              - { label: "Title — line 2", name: titleLine2, widget: string }
+              - { label: "Title — italic accent", name: titleAccent, widget: string }
+              - { label: "Paragraph", name: paragraph, widget: text }
+              - { label: "Button 1 — label", name: primaryLabel, widget: string }
+              - { label: "Button 1 — link", name: primaryLink, widget: string }
+              - { label: "Button 2 — label", name: secondaryLabel, widget: string }
+              - { label: "Button 2 — link", name: secondaryLink, widget: string }
+              - label: "Background showreel"
+                name: backgroundVideo
+                widget: string
+                required: false
+                hint: "Paste a YouTube or Vimeo EMBED url, or upload an mp4 and paste its path. Leave empty for the gradient."
+
+          # ---- MARQUEE ----
+          - label: "Scrolling strip"
+            name: marquee
+            widget: list
+            field: { label: "Word", name: word, widget: string }
+            collapsed: true
+
+          # ---- WORK ----
+          - label: "Work section"
+            name: work
+            widget: object
+            fields:
+              - { label: "Small label", name: label, widget: string }
+              - { label: "Heading", name: heading, widget: string }
+              - { label: "Intro", name: intro, widget: text }
+              - label: "Projects"
+                name: projects
+                widget: list
+                summary: "{{fields.title}} — {{fields.category}}"
+                fields:
+                  - { label: "Title", name: title, widget: string }
+                  - { label: "Category", name: category, widget: string }
+                  - { label: "Thumbnail image", name: thumbnail, widget: image, required: false }
+                  - label: "Video URL"
+                    name: videoUrl
+                    widget: string
+                    required: false
+                    hint: "YouTube/Vimeo EMBED url — opens in the popup player."
+
+          # ---- GALLERY ----
+          - label: "Stills gallery"
+            name: gallery
+            widget: object
+            fields:
+              - { label: "Small label", name: label, widget: string }
+              - { label: "Heading", name: heading, widget: string }
+              - { label: "Intro", name: intro, widget: text }
+              - label: "Photos"
+                name: photos
+                widget: list
+                fields:
+                  - { label: "Image", name: image, widget: image, required: false }
+                  - { label: "Description", name: alt, widget: string, required: false }
+
+          # ---- SERVICES ----
+          - label: "Services"
+            name: services
+            widget: object
+            fields:
+              - { label: "Small label", name: label, widget: string }
+              - { label: "Heading", name: heading, widget: string }
+              - { label: "Intro", name: intro, widget: text }
+              - label: "Service cards"
+                name: items
+                widget: list
+                summary: "{{fields.title}}"
+                fields:
+                  - { label: "Number", name: number, widget: string }
+                  - { label: "Title", name: title, widget: string }
+                  - { label: "Description", name: description, widget: text }
+                  - label: "Bullet points"
+                    name: bullets
+                    widget: list
+                    field: { label: "Point", name: point, widget: string }
+
+          # ---- ABOUT ----
+          - label: "About"
+            name: about
+            widget: object
+            fields:
+              - { label: "Small label", name: label, widget: string }
+              - { label: "Heading", name: heading, widget: string }
+              - { label: "Portrait photo", name: photo, widget: image, required: false }
+              - label: "Paragraphs"
+                name: paragraphs
+                widget: list
+                field: { label: "Paragraph", name: paragraph, widget: text }
+              - label: "Stats"
+                name: stats
+                widget: list
+                summary: "{{fields.value}} {{fields.label}}"
+                fields:
+                  - { label: "Big number", name: value, widget: string }
+                  - { label: "Caption", name: label, widget: string }
+
+          # ---- CONTACT ----
+          - label: "Contact"
+            name: contact
+            widget: object
+            fields:
+              - { label: "Small label", name: label, widget: string }
+              - { label: "Heading", name: heading, widget: string, hint: "Use <br> for a line break." }
+              - { label: "Intro", name: intro, widget: text }
+              - { label: "Email address", name: email, widget: string }
+              - label: "Social links"
+                name: socials
+                widget: list
+                fields:
+                  - { label: "Label", name: label, widget: string }
+                  - { label: "URL", name: url, widget: string }
+
+          # ---- FOOTER ----
+          - label: "Footer"
+            name: footer
+            widget: object
+            collapsed: true
+            fields:
+              - { label: "Left text", name: left, widget: string }
+              - { label: "Right text", name: right, widget: string }
