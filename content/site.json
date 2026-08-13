@@ -2,7 +2,7 @@
   "theme": {
     "blue": "#93AEC9",
     "navy": "#2E4057",
-    "beige": "#D8C9AF",
+    "beige": "#f3e4c8",
     "beigePale": "#F0E9DC",
     "bluePale": "#DCE6F0",
     "white": "#FCFAF7",
@@ -27,18 +27,53 @@
     "secondaryLink": "#contact",
     "backgroundVideo": ""
   },
-  "marquee": ["Cinematography", "Motion Design", "Color Grading", "Brand Films"],
+  "marquee": [
+    "Cinematography",
+    "Motion Design",
+    "Color Grading",
+    "Brand Films"
+  ],
   "work": {
     "label": "01 — Selected Work",
     "heading": "Projects",
     "intro": "Six pieces spanning commercial, brand and short-form film.",
     "projects": [
-      { "title": "Project Title One",   "category": "Brand Film",    "thumbnail": "", "videoUrl": "" },
-      { "title": "Project Title Two",   "category": "Commercial",    "thumbnail": "", "videoUrl": "" },
-      { "title": "Project Title Three", "category": "Motion Design", "thumbnail": "", "videoUrl": "" },
-      { "title": "Project Title Four",  "category": "Short Film",    "thumbnail": "", "videoUrl": "" },
-      { "title": "Project Title Five",  "category": "Product",       "thumbnail": "", "videoUrl": "" },
-      { "title": "Project Title Six",   "category": "Event",         "thumbnail": "", "videoUrl": "" }
+      {
+        "title": "Project Title One",
+        "category": "Brand Film",
+        "thumbnail": "",
+        "videoUrl": ""
+      },
+      {
+        "title": "Project Title Two",
+        "category": "Commercial",
+        "thumbnail": "",
+        "videoUrl": ""
+      },
+      {
+        "title": "Project Title Three",
+        "category": "Motion Design",
+        "thumbnail": "",
+        "videoUrl": ""
+      },
+      {
+        "title": "Project Title Four",
+        "category": "Short Film",
+        "thumbnail": "",
+        "videoUrl": ""
+      },
+      {
+        "title": "Project Title Five",
+        "category": "Product",
+        "thumbnail": "",
+        "videoUrl": ""
+      },
+      {
+        "title": "Project Title Six",
+        "category": "Event",
+        "thumbnail": "",
+        "videoUrl": ""
+      }
     ]
   },
   "gallery": {
@@ -46,14 +81,22 @@
     "heading": "Frames",
     "intro": "Photography and frame grabs from recent sets.",
     "photos": [
-      { "image": "", "alt": "Photo 01" },
-      { "image": "", "alt": "Photo 02" },
-      { "image": "", "alt": "Photo 03" },
-      { "image": "", "alt": "Photo 04" },
-      { "image": "", "alt": "Photo 05" },
-      { "image": "", "alt": "Photo 06" },
-      { "image": "", "alt": "Photo 07" },
-      { "image": "", "alt": "Photo 08" }
+      {
+        "image": "",
+        "alt": "Photo 01"
+      },
+      {
+        "image": "",
+        "alt": "Photo 02"
+      },
+      {
+        "image": "",
+        "alt": "Photo 03"
+      },
+      {
+        "image": "",
+        "alt": "Photo 04"
+      }
     ]
   },
   "services": {
@@ -65,28 +108,47 @@
         "number": "01",
         "title": "Video Production",
         "description": "From concept to final grade. Directing, shooting and post for brand films, commercials and social campaigns.",
-        "bullets": ["Concept & treatment", "Cinematography", "Editing & sound", "Color grading"]
+        "bullets": [
+          "Concept & treatment",
+          "Cinematography",
+          "Editing & sound",
+          "Color grading"
+        ]
       },
       {
         "number": "02",
         "title": "Motion Design",
         "description": "Animation and graphics that give a brand its movement — titles, logo systems, explainers and social cutdowns.",
-        "bullets": ["Logo animation", "Titles & lower thirds", "2D / 3D motion", "Brand motion systems"]
+        "bullets": [
+          "Logo animation",
+          "Titles & lower thirds",
+          "2D / 3D motion",
+          "Brand motion systems"
+        ]
       }
     ]
   },
   "about": {
     "label": "04 — About",
     "heading": "Behind the lens",
-    "photo": "",
+    "photo": "/assets/uploads/1786632347120-DSC03771.jpg",
     "paragraphs": [
       "I'm Ad — a cinematographer and motion designer working with brands and small businesses to make video that carries weight. Every frame is treated like it matters, because it does.",
       "The work sits where cinematography meets design: shot with intent, cut with rhythm, graded with a point of view."
     ],
     "stats": [
-      { "value": "50+", "label": "Projects" },
-      { "value": "6",   "label": "Years" },
-      { "value": "4K",  "label": "Delivery" }
+      {
+        "value": "50+",
+        "label": "Projects"
+      },
+      {
+        "value": "6",
+        "label": "Years"
+      },
+      {
+        "value": "4K",
+        "label": "Delivery"
+      }
     ]
   },
   "contact": {
@@ -95,7 +157,10 @@
     "intro": "Tell me about the project. I'll come back with a plan, a timeline and a number.",
     "email": "adratzabi@gmail.com",
     "socials": [
-      { "label": "Instagram", "url": "https://instagram.com/ad_ratzabi" }
+      {
+        "label": "Instagram",
+        "url": "https://instagram.com/ad_ratzabi"
+      }
     ]
   },
   "footer": {
@@ -103,10 +168,38 @@
     "right": "Vision. Motion. Impact."
   },
   "nav": [
-    { "label": "Work", "link": "#work" },
-    { "label": "Stills", "link": "#gallery" },
-    { "label": "Services", "link": "#services" },
-    { "label": "About", "link": "#about" },
-    { "label": "Contact", "link": "#contact" }
-  ]
+    {
+      "label": "Work",
+      "link": "#work"
+    },
+    {
+      "label": "Stills",
+      "link": "#gallery"
+    },
+    {
+      "label": "Services",
+      "link": "#services"
+    },
+    {
+      "label": "About",
+      "link": "#about"
+    },
+    {
+      "label": "Contact",
+      "link": "#contact"
+    }
+  ],
+  "sectionOrder": [
+    "work",
+    "gallery",
+    "services",
+    "about",
+    "contact"
+  ],
+  "offsets": {
+    "about.photo": {
+      "x": 0,
+      "y": 0
+    }
+  }
 }
