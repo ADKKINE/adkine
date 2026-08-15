@@ -64,6 +64,10 @@
   .ed-btn.pri:hover{background:#93AEC9;color:#16181C}
   .ed-btn:disabled{opacity:.35;cursor:default}
   .ed-btn.on{background:#2E4057;border-color:#2E4057}
+  /* until you sign in, make it obvious that this is the thing standing between
+     you and uploading photos */
+  #edLogin:not(.on){background:#8A6D2F;border-color:#8A6D2F;color:#FCFAF7}
+  #edLogin:not(.on):hover{background:#A5843C}
   body.ed-on{padding-top:56px}
   body.ed-on nav{top:56px}
 
@@ -557,7 +561,9 @@
     const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
 
   function pickImage(path, after) {
-    if (!token) return say('Sign in first — button at the top right', 4000);
+    // A click is a real user gesture, so we can open the sign-in popup right
+    // here instead of just refusing and leaving nothing to see.
+    if (!token) return requireAuth();
     filePicker.value = '';
     filePicker.onchange = async () => {
       const f = filePicker.files[0]; if (!f) return;
@@ -927,7 +933,7 @@
   const b64utf8 = b => new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g,'')), c=>c.charCodeAt(0)));
 
   saveBtn.onclick = async () => {
-    if (!token) return say('Sign in first — button at the top right', 4000);
+    if (!token) return requireAuth();
     if (saveBtn.disabled) return;
     saveBtn.disabled = true; saveBtn.textContent = 'Publishing…';
     try {
@@ -975,12 +981,27 @@
     });
   }
   const loginBtn = bar.querySelector('#edLogin');
-  loginBtn.onclick = async () => {
+  let authRunning = false;
+
+  /** Sign in from wherever the user clicked. Returns true if already signed in. */
+  async function requireAuth() {
+    if (token) return true;
+    if (authRunning) return false;
+    authRunning = true;
     loginBtn.textContent = 'Opening…'; loginBtn.disabled = true;
-    try { token = await login(); loginBtn.textContent = 'Signed in'; loginBtn.classList.add('on');
-      say('Signed in — photos and Publish are ready', 3500); }
-    catch (e) { loginBtn.textContent = 'Sign in'; loginBtn.disabled = false; say(e.message, 7000); }
-  };
+    say('Opening the GitHub sign-in window…', 8000);
+    try {
+      token = await login();
+      loginBtn.textContent = 'Signed in'; loginBtn.classList.add('on'); loginBtn.disabled = true;
+      say('Signed in ✓ — now click the button again to pick your photo', 7000);
+    } catch (e) {
+      loginBtn.textContent = 'Sign in'; loginBtn.disabled = false;
+      say(e.message, 8000);
+    }
+    authRunning = false;
+    return false;
+  }
+  loginBtn.onclick = () => requireAuth();
 
   /* ---------------- boot ---------------- */
   if (!D().offsets || typeof D().offsets !== 'object') D().offsets = {};
@@ -988,6 +1009,6 @@
   if (!Array.isArray(D().blocks)) D().blocks = [];
   baseline = snap(); last = snap();
   redraw();
-  say('Click any text to edit · hover a block for its controls · + between blocks to add', 7000);
+  say('Click any text to edit · hover a block for its controls · sign in (top right) to add photos', 8000);
   addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 })();
