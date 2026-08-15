@@ -77,12 +77,25 @@
   body.ed-on .blk{outline:1px dashed transparent;transition:outline-color .15s}
   body.ed-on .blk:hover{outline-color:rgba(46,64,87,.28)}
   body.ed-on .blk.ed-sel{outline:2px solid #2E4057}
-  .ed-blkbar{position:absolute;top:8px;right:8px;z-index:60;display:none;gap:4px}
+  /* Toolbars sit ABOVE the fixed nav (z-index 100) or they'd be unreachable
+     on whichever block is at the top of the screen. */
+  .ed-blkbar{position:absolute;top:8px;right:8px;z-index:120;display:none;gap:4px}
   body.ed-on .blk:hover>.ed-blkbar,.blk.ed-sel>.ed-blkbar{display:flex}
-  .ed-blkname{position:absolute;top:8px;left:5vw;z-index:60;display:none;
+  .ed-blkname{position:absolute;top:8px;left:5vw;z-index:120;display:none;
     background:#2E4057;color:#F0E9DC;font:500 9px/1 Inter,sans-serif;letter-spacing:.16em;
     text-transform:uppercase;padding:7px 10px;border-radius:2px}
   body.ed-on .blk:hover>.ed-blkname,.blk.ed-sel>.ed-blkname{display:block}
+  /* clear the nav bar on the first block so the two don't sit on top of each other */
+  body.ed-on #blocks > .blk:first-of-type > .ed-blkbar,
+  body.ed-on #blocks > .blk:first-of-type > .ed-blkname{top:104px}
+
+  /* The nav is fixed and full-width, so its empty areas were swallowing the
+     mouse and cancelling :hover on the block underneath — that's why the
+     block buttons vanished as you reached for them. Let the gaps pass through. */
+  body.ed-on nav{pointer-events:none}
+  body.ed-on nav .logo,
+  body.ed-on nav .nav-links,
+  body.ed-on nav .burger{pointer-events:auto}
 
   .ed-chip{background:rgba(22,24,28,.88);color:#F0E9DC;border:0;font:500 9px/1 Inter,sans-serif;
     letter-spacing:.12em;text-transform:uppercase;padding:7px 9px;border-radius:2px;cursor:pointer;
@@ -416,15 +429,46 @@
         ${seg('align',[['left','Left'],['center','Centre']], b.align||'left')}</div>`;
 
     const showBg = !['spacer','marquee'].includes(b.type);
+    const POSITIONS = [
+      ['left top','Top left'],['center top','Top'],['right top','Top right'],
+      ['left center','Left'],['center center','Centre'],['right center','Right'],
+      ['left bottom','Bottom left'],['center bottom','Bottom'],['right bottom','Bottom right'],
+    ];
+    const bgPhoto = showBg ? `
+      <h4>Background photo</h4>
+      <div class="ed-field">
+        <button class="ed-reset" id="pBgPick" style="margin-top:0">
+          ${b.bgImage ? 'Replace background photo' : 'Add a background photo'}</button>
+        ${b.bgImage ? `<button class="ed-reset ed-danger" id="pBgClear">Remove it</button>` : ''}
+      </div>
+      ${b.bgImage ? `
+      <div class="ed-field"><label>Opacity <b id="v-bgOpacity">${Math.round((b.bgOpacity ?? .45)*100)}%</b></label>
+        <input type="range" data-n="bgOpacity" min="0.05" max="1" step="0.05" value="${b.bgOpacity ?? .45}"></div>
+      <div class="ed-field"><label>Position <b>where it sits</b></label>
+        <select id="pBgPos">${POSITIONS.map(([v,l])=>
+          `<option value="${v}"${(b.bgPosition||'center center')===v?' selected':''}>${l}</option>`).join('')}</select></div>
+      <div class="ed-field"><label>Fill</label>
+        ${seg('bgSize',[['cover','Fill'],['contain','Fit'],['auto','Actual size']], b.bgSize||'cover')}</div>
+      <div class="ed-field"><label>Scroll</label>
+        ${seg('bgFixed',[[false,'Moves'],[true,'Stays put']], !!b.bgFixed)}</div>` : ''}
+    ` : '';
+
+    const heroVideo = b.type === 'hero' ? `
+      <h4>Background video</h4>
+      <div class="ed-field"><label>YouTube or Vimeo link <b>optional</b></label>
+        <input type="text" id="pHeroVid" placeholder="Paste a link, or leave empty"
+               value="${A().esc(b.backgroundVideo||'')}"></div>` : '';
 
     panel.innerHTML = `
       <span class="close-x" id="pClose">✕</span>
       <h4>${name} block</h4>
-      ${showBg ? `<div class="ed-field"><label>Background</label>
+      ${showBg ? `<div class="ed-field"><label>Background colour</label>
         <div class="ed-swatches">${BGS.map(([v,c])=>
           `<div class="ed-sw ${(b.bg||'white')===v?'sel':''}" data-bg="${v}"
                 style="background:${c};border:2px solid ${(b.bg||'white')===v?'#2E4057':'rgba(46,64,87,.2)'}"></div>`).join('')}
         </div></div>` : ''}
+      ${bgPhoto}
+      ${heroVideo}
       ${b.type!=='spacer' ? `<div class="ed-field"><label>Padding <b id="v-pad">${Math.round((b.pad??1)*100)}%</b></label>
         <input type="range" data-n="pad" min="0.2" max="2.2" step="0.05" value="${b.pad??1}"></div>` : ''}
       ${extra}
@@ -444,11 +488,29 @@
       const k = r.dataset.n, v = parseFloat(r.value);
       b[k] = v;
       const lbl = panel.querySelector('#v-'+k);
-      if (lbl) lbl.textContent = k === 'pad' ? Math.round(v*100)+'%' : v+'px';
+      if (lbl) lbl.textContent = (k === 'pad' || k === 'bgOpacity')
+        ? Math.round(v*100)+'%' : v+'px';
       const el = document.querySelector(`[data-blk="${i}"]`);
       if (k === 'pad') el?.style.setProperty('--pad', v);
+      else if (k === 'bgOpacity') { const bg = el?.querySelector('.blk-bg'); if (bg) bg.style.opacity = v; }
       else { const sp = el?.querySelector('.spacer-inner'); sp?.style.setProperty('--h', v+'px'); }
       markDirty(true); });
+
+    // background photo
+    panel.querySelector('#pBgPick')?.addEventListener('click', () =>
+      pickImage(`blocks.${i}.bgImage`, () => blockPanel(i)));
+    panel.querySelector('#pBgClear')?.addEventListener('click', () => {
+      delete b.bgImage; markDirty(); redraw(); blockPanel(i); say('Background photo removed'); });
+    panel.querySelector('#pBgPos')?.addEventListener('change', e => {
+      b.bgPosition = e.target.value;
+      const bg = document.querySelector(`[data-blk="${i}"] .blk-bg`);
+      if (bg) bg.style.backgroundPosition = e.target.value;
+      markDirty(); });
+
+    // hero background video
+    panel.querySelector('#pHeroVid')?.addEventListener('change', e => {
+      b.backgroundVideo = e.target.value.trim(); markDirty(); redraw(); blockPanel(i);
+      say(b.backgroundVideo ? 'Background video set' : 'Background video removed'); });
     panel.querySelector('#pAnchor').onchange = e => {
       const v = e.target.value.trim().replace(/[^\w-]/g,'-');
       if (v) { b.id = v; markDirty(); redraw(); } };
@@ -491,7 +553,7 @@
   const toBase64 = f => new Promise((res, rej) => {
     const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
 
-  function pickImage(path) {
+  function pickImage(path, after) {
     if (!token) return say('Sign in first — button at the top right', 4000);
     filePicker.value = '';
     filePicker.onchange = async () => {
@@ -503,6 +565,7 @@
         await putFile('assets/uploads/' + name, await toBase64(f), 'Upload ' + name);
         set(D(), path, '/assets/uploads/' + name);
         markDirty(); redraw(); say('Image added');
+        if (after) after();
       } catch (e) { say('Upload failed: ' + e.message, 6000); }
     };
     filePicker.click();
