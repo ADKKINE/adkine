@@ -91,11 +91,15 @@
   .ed-chip.del:hover{background:#8B1A1A}
   .ed-chip.grab{cursor:grab}
 
-  /* item controls */
+  /* item controls — top RIGHT, so they never sit under the media buttons */
   body.ed-on [data-item]{position:relative}
-  .ed-itembar{position:absolute;top:4px;left:4px;z-index:55;display:none;gap:3px}
+  .ed-itembar{position:absolute;top:4px;right:4px;z-index:57;display:none;gap:3px}
   body.ed-on [data-item]:hover>.ed-itembar{display:flex}
   .ed-itembar .ed-chip{padding:5px 7px;font-size:8px}
+
+  /* media buttons — bottom LEFT of the picture itself */
+  .ed-mediabar{position:absolute;bottom:8px;left:8px;z-index:56;display:flex;gap:4px;
+    flex-wrap:wrap;max-width:calc(100% - 16px)}
 
   /* add-block inserter */
   .ed-ins-row{position:relative;height:0;z-index:58}
@@ -507,8 +511,7 @@
   function wireMedia() {
     document.querySelectorAll('[data-media],[data-video-path]').forEach(el => {
       const bar2 = document.createElement('div');
-      bar2.className = 'ed-blkbar'; bar2.style.display = 'flex';
-      bar2.style.cssText += 'position:absolute;top:8px;left:8px;right:auto;gap:4px;z-index:56';
+      bar2.className = 'ed-mediabar';
       const btns = [];
       if (el.dataset.media)
         btns.push(`<button class="ed-chip" data-a="img">${get(D(), el.dataset.media) ? 'Replace' : 'Add'} photo</button>`);
