@@ -85,9 +85,8 @@
     background:#2E4057;color:#F0E9DC;font:500 9px/1 Inter,sans-serif;letter-spacing:.16em;
     text-transform:uppercase;padding:7px 10px;border-radius:2px}
   body.ed-on .blk:hover>.ed-blkname,.blk.ed-sel>.ed-blkname{display:block}
-  /* clear the nav bar on the first block so the two don't sit on top of each other */
-  body.ed-on #blocks > .blk:first-of-type > .ed-blkbar,
-  body.ed-on #blocks > .blk:first-of-type > .ed-blkname{top:104px}
+  /* Positions are set in JS (see placeBar) so the toolbar always stays clear
+     of the fixed nav, whatever the scroll position. */
 
   /* The nav is fixed and full-width, so its empty areas were swallowing the
      mouse and cancelling :hover on the block underneath — that's why the
@@ -402,7 +401,11 @@
     if (!b) return;
     panelMode = 'block'; selected = i;
     document.querySelectorAll('.blk.ed-sel').forEach(e=>e.classList.remove('ed-sel'));
-    document.querySelector(`[data-blk="${i}"]`)?.classList.add('ed-sel');
+    const selEl = document.querySelector(`[data-blk="${i}"]`);
+    selEl?.classList.add('ed-sel');
+    if (selEl) { const tb = selEl.querySelector(':scope > .ed-blkbar'),
+                       tg = selEl.querySelector(':scope > .ed-blkname');
+                 pinned = {el:selEl, tb, tag:tg}; placeBar(selEl, tb, tg); }
 
     const name = (CATALOGUE.find(c=>c[0]===b.type)||[,b.type])[1];
     const seg = (key, opts, cur) => `<div class="ed-seg">${opts.map(([v,l])=>
@@ -699,7 +702,30 @@
   }
 
   /* ---------------- block toolbars + inserters ---------------- */
+
+  /* The nav is fixed; a toolbar pinned inside the block would slide under it.
+     Pin the toolbar to the viewport instead, clamped to the block's own edges
+     and always below the nav, so it's reachable at any scroll position. */
+  let pinned = null;
+  function placeBar(el, tb, tag) {
+    const nav = document.querySelector('nav');
+    const nb = nav ? nav.getBoundingClientRect().bottom : 0;
+    const r = el.getBoundingClientRect();
+    const top = Math.min(Math.max(nb + 8, r.top + 8), r.bottom - 44);
+    for (const [node, side] of [[tb,'right'], [tag,'left']]) {
+      if (!node) continue;
+      node.style.position = 'fixed';
+      node.style.top = Math.round(top) + 'px';
+      if (side === 'right') { node.style.right = Math.round(innerWidth - r.right + 8) + 'px'; node.style.left = 'auto'; }
+      else { node.style.left = Math.round(r.left + innerWidth * 0.05) + 'px'; node.style.right = 'auto'; }
+    }
+  }
+  const repin = () => { if (pinned) placeBar(pinned.el, pinned.tb, pinned.tag); };
+  addEventListener('scroll', repin, { passive: true });
+  addEventListener('resize', repin);
+
   function wireBlocks() {
+    pinned = null;
     const host = document.getElementById('blocks');
     const blocks = [...host.querySelectorAll(':scope > .blk')];
 
@@ -740,6 +766,9 @@
           }
         };
       });
+
+      el.addEventListener('mouseenter', () => { pinned = {el, tb, tag}; placeBar(el, tb, tag); });
+      el.addEventListener('mouseleave', () => { if (pinned && pinned.el === el) pinned = null; });
 
       el.addEventListener('dragstart', e => {
         drag = { kind:'block', from:i }; el.classList.add('ed-drag');
