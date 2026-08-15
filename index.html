@@ -651,7 +651,7 @@ function render(d){
                  b.align === 'center' ? 'center' : ''].filter(Boolean).join(' ');
     const bgLayer = b.bgImage ? `<div class="blk-bg${b.bgFixed?' fixed':''}" style="
         background-image:url('${esc(b.bgImage)}');
-        opacity:${b.bgOpacity ?? 0.45};
+        opacity:${b.bgOpacity ?? 0.6};
         background-position:${esc(b.bgPosition || 'center center')};
         background-size:${esc(b.bgSize || 'cover')}"></div>` : '';
     return `<section class="${cls}" id="${esc(b.id)}" data-blk="${i}" data-type="${esc(b.type)}"
