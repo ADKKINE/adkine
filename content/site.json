@@ -74,7 +74,9 @@
           "solid": false
         }
       ],
-      "bgImage": "/assets/uploads/1786801436765-DSC08941.jpg"
+      "bgImage": "/assets/uploads/1786803025555-DSC08941.jpg",
+      "bg": "white",
+      "bgOpacity": 0.85
     },
     {
       "id": "mq",
