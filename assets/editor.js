@@ -568,6 +568,43 @@
   const toBase64 = f => new Promise((res, rej) => {
     const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
 
+  /* Straight-from-camera photos are ~6 MB and 20+ megapixels. Browsers refuse
+     to use images that large as page backgrounds, and they'd be brutal for
+     visitors anyway. Shrink to something a website can actually use. */
+  const MAX_EDGE = 2400, JPEG_Q = 0.82;
+  async function prepareImage(file) {
+    if (!/^image\//.test(file.type)) return { blob: file, name: file.name };
+    // small PNGs keep their transparency (logos, marks)
+    if (file.type === 'image/png' && file.size < 1_200_000) return { blob: file, name: file.name };
+
+    let src = null;
+    try { src = await createImageBitmap(file); }
+    catch {
+      try {
+        const url = URL.createObjectURL(file);
+        src = await new Promise((res, rej) => {
+          const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url;
+        });
+      } catch { return { blob: file, name: file.name, failed: true }; }
+    }
+    const w0 = src.width || src.naturalWidth, h0 = src.height || src.naturalHeight;
+    const scale = Math.min(1, MAX_EDGE / Math.max(w0, h0));
+    if (scale === 1 && file.size < 900_000) { src.close?.(); return { blob: file, name: file.name }; }
+
+    const w = Math.round(w0 * scale), h = Math.round(h0 * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, w, h);
+    src.close?.();
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', JPEG_Q));
+    if (!blob) return { blob: file, name: file.name, failed: true };
+    return { blob, name: file.name.replace(/\.[^.]+$/, '') + '.jpg',
+             from: { w: w0, h: h0, kb: Math.round(file.size / 1024) },
+             to:   { w, h, kb: Math.round(blob.size / 1024) } };
+  }
+
   /* An uploaded file is committed to GitHub, but Cloudflare needs ~a minute to
      publish it — until then its URL 404s and the picture looks like it never
      arrived. Show the local file straight away so you can see what you added. */
@@ -599,15 +636,22 @@
     filePicker.value = '';
     filePicker.onchange = async () => {
       const f = filePicker.files[0]; if (!f) return;
-      if (f.size > 8*1024*1024) return say('Image too large — keep it under 8 MB', 4000);
-      say('Uploading ' + f.name + '…', 12000);
+      if (f.size > 25*1024*1024) return say('That file is enormous — keep it under 25 MB', 5000);
+      say('Preparing ' + f.name + '…', 20000);
       try {
-        const name = Date.now() + '-' + f.name.replace(/[^\w.\-]/g,'_');
-        await putFile('assets/uploads/' + name, await toBase64(f), 'Upload ' + name);
+        const prepared = await prepareImage(f);
+        if (prepared.to) {
+          say(`Shrinking ${prepared.from.w}×${prepared.from.h} (${prepared.from.kb} KB) ` +
+              `to ${prepared.to.w}×${prepared.to.h} (${prepared.to.kb} KB), then uploading…`, 20000);
+        } else {
+          say('Uploading ' + f.name + '…', 20000);
+        }
+        const name = Date.now() + '-' + prepared.name.replace(/[^\w.\-]/g,'_');
+        await putFile('assets/uploads/' + name, await toBase64(prepared.blob), 'Upload ' + name);
         set(D(), path, '/assets/uploads/' + name);
-        PREVIEW.set(path, URL.createObjectURL(f));
+        PREVIEW.set(path, URL.createObjectURL(prepared.blob));
         markDirty(); redraw();
-        say('Photo added — you can see it here now. It appears on the live site about a minute after you Publish.', 8000);
+        say('Photo added — visible here now, and on the live site about a minute after you Publish.', 8000);
         if (after) after();
       } catch (e) { say('Upload failed: ' + e.message, 6000); }
     };
