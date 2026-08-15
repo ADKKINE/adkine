@@ -134,49 +134,6 @@
       ]
     },
     {
-      "id": "gallery",
-      "type": "gallery",
-      "bg": "beige",
-      "columns": 4,
-      "label": "02 — Stills",
-      "heading": "Frames",
-      "intro": "Photography and frame grabs from recent sets.",
-      "items": [
-        {
-          "image": "",
-          "alt": "Photo 01"
-        },
-        {
-          "image": "",
-          "alt": "Photo 02"
-        },
-        {
-          "image": "",
-          "alt": "Photo 03"
-        },
-        {
-          "image": "",
-          "alt": "Photo 04"
-        },
-        {
-          "image": "",
-          "alt": "Photo 05"
-        },
-        {
-          "image": "",
-          "alt": "Photo 06"
-        },
-        {
-          "image": "",
-          "alt": "Photo 07"
-        },
-        {
-          "image": "",
-          "alt": "Photo 08"
-        }
-      ]
-    },
-    {
       "id": "services",
       "type": "services",
       "bg": "black",
