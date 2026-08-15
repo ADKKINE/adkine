@@ -68,6 +68,12 @@
      you and uploading photos */
   #edLogin:not(.on){background:#8A6D2F;border-color:#8A6D2F;color:#FCFAF7}
   #edLogin:not(.on):hover{background:#A5843C}
+  /* unpublished work is easy to lose by simply closing the tab — make the
+     Publish button impossible to overlook while anything is unsaved */
+  #edSave.unsaved{background:#8A6D2F;border-color:#8A6D2F;color:#FCFAF7;
+    animation:edPulse 2s ease-in-out infinite}
+  @keyframes edPulse{0%,100%{box-shadow:0 0 0 0 rgba(138,109,47,.7)}
+                     50%{box-shadow:0 0 0 7px rgba(138,109,47,0)}}
   body.ed-on{padding-top:56px}
   body.ed-on nav{top:56px}
 
@@ -236,6 +242,7 @@
   function markDirty(skipPush) {
     if (!skipPush) push();
     dirty = true; saveBtn.disabled = false; saveBtn.textContent = 'Publish';
+    saveBtn.classList.add('unsaved');
   }
   bar.querySelector('#edUndo').onclick = undo;
   bar.querySelector('#edRedo').onclick = redo;
@@ -449,8 +456,8 @@
         ${b.bgImage ? `<button class="ed-reset ed-danger" id="pBgClear">Remove it</button>` : ''}
       </div>
       ${b.bgImage ? `
-      <div class="ed-field"><label>Opacity <b id="v-bgOpacity">${Math.round((b.bgOpacity ?? .45)*100)}%</b></label>
-        <input type="range" data-n="bgOpacity" min="0.05" max="1" step="0.05" value="${b.bgOpacity ?? .45}"></div>
+      <div class="ed-field"><label>Opacity <b id="v-bgOpacity">${Math.round((b.bgOpacity ?? .6)*100)}%</b></label>
+        <input type="range" data-n="bgOpacity" min="0.05" max="1" step="0.05" value="${b.bgOpacity ?? .6}"></div>
       <div class="ed-field"><label>Position <b>where it sits</b></label>
         <select id="pBgPos">${POSITIONS.map(([v,l])=>
           `<option value="${v}"${(b.bgPosition||'center center')===v?' selected':''}>${l}</option>`).join('')}</select></div>
@@ -541,6 +548,7 @@
       el.addEventListener('input', () => {
         set(D(), el.dataset.path, el.innerText.trim());
         dirty = true; saveBtn.disabled = false; saveBtn.textContent = 'Publish';
+        saveBtn.classList.add('unsaved');
       });
       el.addEventListener('blur', () => {
         if (before && before !== snap()) { past.push(before); last = snap(); future.length = 0; }
@@ -560,6 +568,30 @@
   const toBase64 = f => new Promise((res, rej) => {
     const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
 
+  /* An uploaded file is committed to GitHub, but Cloudflare needs ~a minute to
+     publish it — until then its URL 404s and the picture looks like it never
+     arrived. Show the local file straight away so you can see what you added. */
+  const PREVIEW = new Map();   // data path -> blob url
+  function applyPreviews() {
+    for (const [path, url] of PREVIEW) {
+      if (/\.bgImage$/.test(path)) {
+        const i = path.split('.')[1];
+        const layer = document.querySelector(`[data-blk="${i}"] .blk-bg`);
+        if (layer) layer.style.backgroundImage = `url('${url}')`;
+      } else {
+        const host = document.querySelector(`[data-media="${path}"]`);
+        const img = host?.querySelector('img');
+        if (img) img.src = url;
+        else if (host) {
+          host.querySelector('.ph-label')?.remove();
+          const el = document.createElement('img');
+          el.src = url; el.alt = '';
+          host.prepend(el);
+        }
+      }
+    }
+  }
+
   function pickImage(path, after) {
     // A click is a real user gesture, so we can open the sign-in popup right
     // here instead of just refusing and leaving nothing to see.
@@ -573,7 +605,9 @@
         const name = Date.now() + '-' + f.name.replace(/[^\w.\-]/g,'_');
         await putFile('assets/uploads/' + name, await toBase64(f), 'Upload ' + name);
         set(D(), path, '/assets/uploads/' + name);
-        markDirty(); redraw(); say('Image added');
+        PREVIEW.set(path, URL.createObjectURL(f));
+        markDirty(); redraw();
+        say('Photo added — you can see it here now. It appears on the live site about a minute after you Publish.', 8000);
         if (after) after();
       } catch (e) { say('Upload failed: ' + e.message, 6000); }
     };
@@ -893,7 +927,8 @@
           snapV.style.display = snapH.style.display = readout.style.display = 'none';
           if (el._p) { off[key] = el._p; delete el._p;
             past.push(before); last = snap(); future.length = 0;
-            dirty = true; saveBtn.disabled = false; saveBtn.textContent = 'Publish'; }
+            dirty = true; saveBtn.disabled = false; saveBtn.textContent = 'Publish';
+            saveBtn.classList.add('unsaved'); }
         };
         addEventListener('mousemove', move); addEventListener('mouseup', up);
       });
@@ -912,6 +947,7 @@
     A().render(D());
     document.querySelectorAll('.reveal').forEach(e => e.classList.add('in'));
     wireText(); wireMedia(); wireLists(); wireBlocks(); wireFree();
+    applyPreviews();
     if (freeMode) document.querySelectorAll('[data-path]').forEach(el => el.contentEditable = 'false');
     scrollTo(0, y);
   }
@@ -951,6 +987,7 @@
       }
       await putFile('content/site.json', utf8b64(JSON.stringify(D(), null, 2)), 'Update site content');
       baseline = snap(); dirty = false; saveBtn.textContent = 'Saved';
+      saveBtn.classList.remove('unsaved');
       say('Published ✓ — live in about 30 seconds', 5000);
     } catch (e) {
       saveBtn.disabled = false; saveBtn.textContent = 'Publish';
