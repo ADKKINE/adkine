@@ -40,6 +40,9 @@
   --font-display:'Cormorant Garamond',Georgia,serif;
   --font-body:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
   --k-head:1; --k-body:1; --k-space:1; --track:-.02em;
+  /* every vw in this stylesheet goes through --vw, so the editor can shrink the
+     whole page to phone width and still get true phone proportions */
+  --vw:1vw;
   --serif:var(--font-display); --sans:var(--font-body);
   --ease:cubic-bezier(.22,1,.36,1);
 }
@@ -57,8 +60,8 @@ a{color:inherit;text-decoration:none}
 @media(hover:none),(max-width:900px){.cursor,.cursor-ring{display:none}}
 
 /* ---------- nav ---------- */
-nav{position:fixed;inset:0 0 auto 0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:34px 5vw;transition:all .5s var(--ease)}
-nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+nav{position:fixed;inset:0 0 auto 0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:34px calc(5*var(--vw));transition:all .5s var(--ease)}
+nav.scrolled{padding:18px calc(5*var(--vw));background:rgba(252,250,247,.82);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
 .logo{font-weight:800;font-size:19px;letter-spacing:.16em}
 .logo .ki{color:var(--navy)}
 .nav-links{display:flex;gap:44px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:400}
@@ -84,8 +87,23 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 .reveal[data-d="3"]{transition-delay:.36s}
 .reveal[data-d="4"]{transition-delay:.48s}
 
+/* ---------- device preview (editor only) ----------
+   Phone mode narrows the document to a phone width and rewrites --vw so every
+   fluid size behaves exactly as it would on a real phone. The @media rules are
+   mirrored onto body.dev-mobile at runtime (buildDeviceCSS) so nothing has to
+   be written twice. */
+html.dev-frame{background:#E4E0D8}
+body.dev-mobile{--vw:4.3px;width:430px;margin:0 auto;overflow-x:hidden;
+  box-shadow:0 0 0 1px rgba(46,64,87,.18),0 24px 70px rgba(22,24,28,.22)}
+body.dev-mobile nav{left:50%;right:auto;width:430px;margin-left:-215px}
+body.dev-mobile .cursor,body.dev-mobile .cursor-ring{display:none}
+/* hidden on this device */
+.d-hidden{display:none!important}
+body.ed-on .d-hidden{display:block!important;opacity:.28;filter:grayscale(1);
+  outline:2px dashed rgba(46,64,87,.5)}
+
 /* ---------- blocks ---------- */
-.blk{position:relative;padding:calc(clamp(90px,13vw,170px)*var(--k-space)*var(--pad,1)) 5vw}
+.blk{position:relative;padding:calc(clamp(90px,calc(13*var(--vw)),170px)*var(--k-space)*var(--pad,1)) calc(5*var(--vw))}
 /* optional background photo behind any block */
 .blk-bg{position:absolute;inset:0;z-index:0;background-repeat:no-repeat;pointer-events:none}
 .blk-bg.fixed{background-attachment:fixed}
@@ -106,12 +124,12 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 
 .sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-bottom:70px;flex-wrap:wrap}
 .sec-num{font-size:11px;letter-spacing:.3em;color:var(--blue);font-weight:500}
-.sec-head h2{font-family:var(--serif);font-weight:300;font-size:calc(clamp(2.4rem,5.6vw,4.6rem)*var(--k-head));line-height:1.02;letter-spacing:var(--track);color:var(--black)}
+.sec-head h2{font-family:var(--serif);font-weight:300;font-size:calc(clamp(2.4rem,calc(5.6*var(--vw)),4.6rem)*var(--k-head));line-height:1.02;letter-spacing:var(--track);color:var(--black)}
 .sec-head p{max-width:340px;font-size:calc(15px*var(--k-body));color:var(--muted)}
 .blk.bg-navy .sec-head p,.blk.bg-black .sec-head p{color:inherit}
 
 /* hero */
-.hero{position:relative;min-height:100svh;display:flex;align-items:center;padding:0 5vw;overflow:hidden}
+.hero{position:relative;min-height:100svh;display:flex;align-items:center;padding:0 calc(5*var(--vw));overflow:hidden}
 .hero-media{position:absolute;inset:0;z-index:0;background:linear-gradient(120deg,var(--blue-pale) 0%,var(--beige-pale) 55%,var(--white) 100%)}
 .hero-media video,.hero-media iframe{width:100%;height:100%;object-fit:cover;border:0}
 .hero-media::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(252,250,247,.92) 0%,rgba(252,250,247,.55) 50%,rgba(252,250,247,.2) 100%)}
@@ -121,10 +139,10 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 .hero-media.has-photo::after{background:linear-gradient(90deg,rgba(252,250,247,.70) 0%,rgba(252,250,247,.32) 45%,rgba(252,250,247,.04) 100%)}
 .hero-inner{position:relative;z-index:2;max-width:1000px}
 .eyebrow{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--navy);margin-bottom:30px;font-weight:500}
-.hero h1{font-family:var(--serif);font-weight:300;font-size:calc(clamp(3.4rem,9.5vw,9rem)*var(--k-head));line-height:.94;letter-spacing:var(--track);color:var(--black);margin-bottom:34px}
+.hero h1{font-family:var(--serif);font-weight:300;font-size:calc(clamp(3.4rem,calc(9.5*var(--vw)),9rem)*var(--k-head));line-height:.94;letter-spacing:var(--track);color:var(--black);margin-bottom:34px}
 .hero h1 em{font-style:italic;color:var(--navy)}
 .hero p{max-width:440px;font-size:calc(16px*var(--k-body));color:var(--muted);margin-bottom:48px}
-.scroll-hint{position:absolute;bottom:42px;left:5vw;z-index:2;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:14px}
+.scroll-hint{position:absolute;bottom:42px;left:calc(5*var(--vw));z-index:2;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:14px}
 .scroll-hint::after{content:'';width:52px;height:1px;background:var(--blue);animation:slide 2.4s var(--ease) infinite}
 @keyframes slide{0%{transform:scaleX(0);transform-origin:left}50%{transform:scaleX(1);transform-origin:left}51%{transform-origin:right}100%{transform:scaleX(0);transform-origin:right}}
 
@@ -151,13 +169,13 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 @keyframes scroll{to{transform:translateX(-50%)}}
 
 /* projects */
-.work-grid{display:grid;gap:clamp(20px,3.4vw,52px)}
+.work-grid{display:grid;gap:clamp(20px,calc(3.4*var(--vw)),52px)}
 .work-grid.c1{grid-template-columns:1fr}
 .work-grid.c2{grid-template-columns:repeat(2,1fr)}
 .work-grid.c3{grid-template-columns:repeat(3,1fr)}
 @media(max-width:760px){.work-grid{grid-template-columns:1fr!important}}
 .project{cursor:pointer;display:block}
-.work-grid.c2 .project:nth-child(even){margin-top:clamp(0px,5vw,80px)}
+.work-grid.c2 .project:nth-child(even){margin-top:clamp(0px,calc(5*var(--vw)),80px)}
 .thumb{position:relative;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(135deg,var(--blue-pale),var(--beige-pale))}
 .thumb img,.thumb video{width:100%;height:100%;object-fit:cover;transition:transform 1.1s var(--ease)}
 .project:hover .thumb img{transform:scale(1.06)}
@@ -169,7 +187,7 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 .play::after{content:'';border-left:11px solid var(--white);border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:4px}
 .project:hover .play{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .p-meta{display:flex;justify-content:space-between;align-items:baseline;margin-top:20px;gap:20px}
-.p-meta h3{font-family:var(--serif);font-weight:400;font-size:calc(clamp(1.3rem,2.4vw,1.9rem)*var(--k-head));color:var(--black)}
+.p-meta h3{font-family:var(--serif);font-weight:400;font-size:calc(clamp(1.3rem,calc(2.4*var(--vw)),1.9rem)*var(--k-head));color:var(--black)}
 .p-meta span{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .bg-navy .p-meta span,.bg-black .p-meta span{color:inherit}
 
@@ -189,7 +207,7 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 .s-grid.c2{grid-template-columns:repeat(2,1fr)}
 .s-grid.c3{grid-template-columns:repeat(3,1fr)}
 @media(max-width:760px){.s-grid{grid-template-columns:1fr!important}}
-.s-card{background:var(--white);padding:clamp(38px,5vw,64px);transition:background .6s var(--ease)}
+.s-card{background:var(--white);padding:clamp(38px,calc(5*var(--vw)),64px);transition:background .6s var(--ease)}
 .bg-black .s-grid,.bg-navy .s-grid{background:rgba(240,233,220,.16)}
 .bg-black .s-card{background:var(--black)}
 .bg-navy .s-card{background:var(--navy)}
@@ -197,7 +215,7 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 .bg-black .s-card:hover{background:var(--navy)}
 .bg-navy .s-card:hover{background:var(--black)}
 .s-card .n{font-size:11px;letter-spacing:.3em;color:var(--blue);margin-bottom:26px}
-.s-card h3{font-family:var(--serif);font-weight:300;font-size:calc(clamp(1.8rem,3.4vw,2.8rem)*var(--k-head));color:var(--black);margin-bottom:20px}
+.s-card h3{font-family:var(--serif);font-weight:300;font-size:calc(clamp(1.8rem,calc(3.4*var(--vw)),2.8rem)*var(--k-head));color:var(--black);margin-bottom:20px}
 .s-card p{font-size:calc(15px*var(--k-body));color:var(--muted);margin-bottom:28px}
 .bg-black .s-card p,.bg-navy .s-card p{color:inherit}
 .s-card ul{list-style:none;font-size:calc(13px*var(--k-body));color:var(--muted)}
@@ -205,13 +223,13 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 .bg-black .s-card li,.bg-navy .s-card li{border-color:rgba(240,233,220,.13)}
 
 /* about */
-.a-wrap{display:grid;grid-template-columns:1fr 1.1fr;gap:clamp(36px,6vw,90px);align-items:center}
+.a-wrap{display:grid;grid-template-columns:1fr 1.1fr;gap:clamp(36px,calc(6*var(--vw)),90px);align-items:center}
 .a-wrap.flip{direction:rtl}
 .a-wrap.flip>*{direction:ltr}
 @media(max-width:860px){.a-wrap{grid-template-columns:1fr;direction:ltr!important}}
 .a-photo{aspect-ratio:4/5;background:linear-gradient(150deg,var(--beige-pale),var(--blue-pale));overflow:hidden;position:relative}
 .a-photo img{width:100%;height:100%;object-fit:cover}
-.a-text h2{font-family:var(--serif);font-weight:300;font-size:calc(clamp(2rem,4.4vw,3.4rem)*var(--k-head));line-height:1.1;color:var(--black);margin:10px 0 28px}
+.a-text h2{font-family:var(--serif);font-weight:300;font-size:calc(clamp(2rem,calc(4.4*var(--vw)),3.4rem)*var(--k-head));line-height:1.1;color:var(--black);margin:10px 0 28px}
 .a-text p{font-size:calc(16px*var(--k-body));color:var(--muted);margin-bottom:20px;max-width:520px}
 .bg-navy .a-text p,.bg-black .a-text p{color:inherit}
 .stats{display:flex;gap:52px;margin-top:44px;flex-wrap:wrap}
@@ -221,10 +239,10 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 
 /* contact */
 .contact-blk{text-align:center}
-.contact-blk h2{font-family:var(--serif);font-weight:300;font-size:calc(clamp(2.6rem,7vw,6rem)*var(--k-head));line-height:1.02;letter-spacing:var(--track);margin:18px 0 34px;color:var(--black)}
+.contact-blk h2{font-family:var(--serif);font-weight:300;font-size:calc(clamp(2.6rem,calc(7*var(--vw)),6rem)*var(--k-head));line-height:1.02;letter-spacing:var(--track);margin:18px 0 34px;color:var(--black)}
 .contact-blk p{max-width:420px;margin:0 auto 46px;font-size:calc(16px*var(--k-body));color:var(--muted)}
 .bg-navy .contact-blk p,.bg-black .contact-blk p{color:inherit}
-.mail{display:inline-block;font-family:var(--serif);font-size:calc(clamp(1.3rem,3.4vw,2.4rem)*var(--k-head));color:var(--navy);border-bottom:1px solid var(--line);padding-bottom:8px;transition:.5s var(--ease)}
+.mail{display:inline-block;font-family:var(--serif);font-size:calc(clamp(1.3rem,calc(3.4*var(--vw)),2.4rem)*var(--k-head));color:var(--navy);border-bottom:1px solid var(--line);padding-bottom:8px;transition:.5s var(--ease)}
 .bg-navy .mail,.bg-black .mail{color:var(--beige-pale);border-color:rgba(216,201,175,.4)}
 .mail:hover{color:var(--beige);border-color:var(--beige)}
 .socials{display:flex;gap:34px;justify-content:center;margin-top:56px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
@@ -234,7 +252,7 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 /* text block */
 .txt-wrap{max-width:760px}
 .blk.center .txt-wrap{margin:0 auto}
-.txt-wrap h2{font-family:var(--serif);font-weight:300;font-size:calc(clamp(2rem,4.4vw,3.4rem)*var(--k-head));line-height:1.08;letter-spacing:var(--track);color:var(--black);margin-bottom:24px}
+.txt-wrap h2{font-family:var(--serif);font-weight:300;font-size:calc(clamp(2rem,calc(4.4*var(--vw)),3.4rem)*var(--k-head));line-height:1.08;letter-spacing:var(--track);color:var(--black);margin-bottom:24px}
 .txt-wrap p{font-size:calc(16px*var(--k-body));color:var(--muted);margin-bottom:18px}
 .bg-navy .txt-wrap p,.bg-black .txt-wrap p{color:inherit}
 
@@ -250,12 +268,12 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 /* quote */
 .quote-wrap{max-width:860px;margin:0 auto;text-align:center}
 .quote-wrap blockquote{font-family:var(--serif);font-weight:300;font-style:italic;
-  font-size:calc(clamp(1.6rem,3.6vw,2.8rem)*var(--k-head));line-height:1.28;color:var(--black)}
+  font-size:calc(clamp(1.6rem,calc(3.6*var(--vw)),2.8rem)*var(--k-head));line-height:1.28;color:var(--black)}
 .bg-navy .quote-wrap blockquote,.bg-black .quote-wrap blockquote{color:var(--white)}
 .quote-wrap .who{margin-top:28px;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--blue)}
 
 /* logos strip */
-.logos{display:flex;flex-wrap:wrap;gap:clamp(28px,5vw,70px);align-items:center;justify-content:center}
+.logos{display:flex;flex-wrap:wrap;gap:clamp(28px,calc(5*var(--vw)),70px);align-items:center;justify-content:center}
 .logo-item{font-family:var(--serif);font-size:calc(1.5rem*var(--k-head));color:var(--muted);letter-spacing:.02em}
 .bg-navy .logo-item,.bg-black .logo-item{color:inherit}
 
@@ -266,9 +284,9 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 .divider-line{height:1px;background:var(--line);margin:calc(40px*var(--pad,1)) 0}
 .bg-navy .divider-line,.bg-black .divider-line{background:rgba(240,233,220,.2)}
 
-footer{background:var(--black);color:rgba(240,233,220,.42);padding:38px 5vw;display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;flex-wrap:wrap;gap:14px}
+footer{background:var(--black);color:rgba(240,233,220,.42);padding:38px calc(5*var(--vw));display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;flex-wrap:wrap;gap:14px}
 
-.modal{position:fixed;inset:0;z-index:500;background:rgba(22,24,28,.94);display:grid;place-items:center;padding:5vw;opacity:0;pointer-events:none;transition:opacity .5s var(--ease)}
+.modal{position:fixed;inset:0;z-index:500;background:rgba(22,24,28,.94);display:grid;place-items:center;padding:calc(5*var(--vw));opacity:0;pointer-events:none;transition:opacity .5s var(--ease)}
 .modal.open{opacity:1;pointer-events:all}
 .modal-inner{width:min(1100px,100%);aspect-ratio:16/9;background:var(--ink);position:relative}
 .modal-inner iframe,.modal-inner video{width:100%;height:100%;border:0;object-fit:cover}
@@ -351,6 +369,8 @@ function migrate(d){
   d.theme   = d.theme   || {};
   d.style   = d.style   || {};
   d.offsets = d.offsets || {};
+  d.offsetsMobile = d.offsetsMobile || {};
+  d.textStyles    = d.textStyles    || {};
   d.footer  = d.footer  || {};
   d.nav     = Array.isArray(d.nav) ? d.nav : [];
   if (Array.isArray(d.blocks)) return d;
@@ -435,14 +455,161 @@ function applyStyle(d){
   r.setProperty('--k-space', s.spaceScale ?? 1);
   r.setProperty('--track',   (s.tracking ?? -0.02) + 'em');
 }
-function applyOffsets(d){
-  const o = d.offsets || {}, on = innerWidth > 900;
-  document.querySelectorAll('[data-move]').forEach(el=>{
-    const v = o[el.dataset.move];
-    el.style.transform = (on && v && (v.x || v.y)) ? `translate(${v.x}px,${v.y}px)` : '';
+
+/* ============ device (desktop / phone) ============
+   Desktop settings are the base. Phone settings are overrides layered on top,
+   so anything you never touch on the phone simply follows the desktop. */
+let FORCED_DEVICE = null;
+const device = () => FORCED_DEVICE || (innerWidth <= 900 ? 'mobile' : 'desktop');
+
+/* block fields that can hold a different value on the phone */
+const DEVICE_KEYS = ['pad','align','columns','height','width','ratio','flip','hidden',
+                     'bgOpacity','bgPosition','bgSize','bgFixed'];
+function forDevice(b){
+  if(device() !== 'mobile' || !b.mobile) return b;
+  const o = {...b};
+  for(const k of DEVICE_KEYS){
+    const v = b.mobile[k];
+    if(v !== undefined && v !== null) o[k] = v;
+  }
+  return o;
+}
+
+/* Mirror every max-width media rule onto body.dev-mobile so the phone frame
+   picks up the real mobile CSS without any of it being written twice. */
+function buildDeviceCSS(){
+  if(document.getElementById('devCSS')) return;
+  const out = [];
+  for(const sheet of document.styleSheets){
+    let rules; try{ rules = sheet.cssRules; }catch(e){ continue; }
+    if(!rules) continue;
+    for(const r of rules){
+      const cond = r.conditionText || r.media?.mediaText || '';
+      if(r.type !== 4 /* CSSMediaRule */ || !/max-width/.test(cond)) continue;
+      const widths = [...cond.matchAll(/max-width:\s*(\d+)px/g)].map(m=>+m[1]);
+      if(widths.length && Math.max(...widths) < 430) continue;   // narrower than the frame
+      for(const inner of r.cssRules){
+        if(!inner.selectorText || !inner.style) continue;
+        const sel = inner.selectorText.split(',').map(s=>{
+          s = s.trim();
+          if(/^html\b/.test(s)) return s.replace(/^html/, 'html body.dev-mobile');
+          if(/^body\b/.test(s)) return s.replace(/^body/, 'body.dev-mobile');
+          return 'body.dev-mobile ' + s;
+        }).join(',');
+        out.push(sel + '{' + inner.style.cssText + '}');
+      }
+    }
+  }
+  const st = document.createElement('style');
+  st.id = 'devCSS';
+  st.textContent = out.join('\n');
+  document.head.appendChild(st);
+}
+
+function setDevice(mode){
+  buildDeviceCSS();
+  FORCED_DEVICE = (mode === 'desktop' || mode === 'mobile') ? mode : null;
+  const mob = device() === 'mobile';
+  document.body.classList.toggle('dev-mobile', !!FORCED_DEVICE && mob);
+  document.documentElement.classList.toggle('dev-frame', !!FORCED_DEVICE && mob);
+  return device();
+}
+
+/* Light re-sync when the real window crosses the phone/desktop line — cheaper
+   and safer than re-rendering (which would re-bind every listener). */
+function applyBlockDevice(d){
+  (d.blocks||[]).forEach((b,i)=>{
+    const el = document.querySelector(`#blocks > [data-blk="${i}"]`);
+    if(!el) return;
+    const v = forDevice(b);
+    el.classList.toggle('d-hidden', !!v.hidden);
+    el.style.setProperty('--pad', v.pad ?? 1);
+    if(['text','buttons','quote'].includes(b.type)) el.classList.toggle('center', v.align === 'center');
+    const grid = el.querySelector('.work-grid,.g-grid,.s-grid');
+    if(grid && v.columns) grid.className = grid.className.replace(/\bc\d+\b/, 'c'+v.columns);
+    const sp = el.querySelector('.spacer-inner');
+    if(sp && v.height) sp.style.setProperty('--h', (parseInt(v.height)||80)+'px');
+    const bg = el.querySelector('.blk-bg');
+    if(bg){
+      bg.style.opacity = v.bgOpacity ?? 0.6;
+      bg.style.backgroundPosition = v.bgPosition || 'center center';
+      bg.style.backgroundSize = v.bgSize || 'cover';
+      bg.classList.toggle('fixed', !!v.bgFixed);
+    }
+    const mw = el.querySelector('.media-wrap');
+    if(mw && v.width) mw.className = mw.className.replace(/\bw-\w+\b/, 'w-'+v.width);
+    const mb = el.querySelector('.media-box');
+    if(mb && b.type === 'image' && v.ratio) mb.style.aspectRatio = v.ratio;
   });
 }
-addEventListener('resize', ()=>{ if(window.ADKINE) applyOffsets(window.ADKINE.data); });
+
+/* ============ per-text styling ============
+   Every individual bit of text on the page carries a stable key
+   (block id + field). d.textStyles[key].desktop / .mobile hold its own font,
+   size, weight, colour, alignment, spacing — phone layered over desktop. */
+function tkeyOf(path, blocks){
+  const m = /^blocks\.(\d+)\.(.+)$/.exec(path || '');
+  if(!m) return path || '';
+  const b = (blocks||[])[+m[1]];
+  return (b && b.id ? b.id : m[1]) + '.' + m[2];
+}
+const TXT_CSS = {
+  font:       v => ['font-family',    FONT_STACK[v] || v],
+  size:       v => ['font-size',      parseFloat(v) + 'px'],
+  weight:     v => ['font-weight',    String(v)],
+  color:      v => ['color',          v],
+  align:      v => ['text-align',     v],
+  tracking:   v => ['letter-spacing', parseFloat(v) + 'em'],
+  lineHeight: v => ['line-height',    String(v)],
+  italic:     v => ['font-style',     v ? 'italic' : 'normal'],
+  caps:       v => ['text-transform', v ? 'uppercase' : 'none'],
+};
+const TXT_PROPS = ['font-family','font-size','font-weight','color','text-align',
+                   'letter-spacing','line-height','font-style','text-transform'];
+function textStyleFor(d, key){
+  const t = (d.textStyles || {})[key];
+  if(!t) return null;
+  const base = t.desktop || {};
+  return device() === 'mobile' ? {...base, ...(t.mobile || {})} : base;
+}
+function tagTexts(d){
+  document.querySelectorAll('[data-path]:not([data-tkey])').forEach(el=>{
+    el.dataset.tkey = tkeyOf(el.dataset.path, d.blocks);
+  });
+}
+function applyTextStyles(d){
+  document.querySelectorAll('[data-tkey]').forEach(el=>{
+    TXT_PROPS.forEach(p => el.style.removeProperty(p));
+    const s = textStyleFor(d, el.dataset.tkey);
+    if(!s) return;
+    for(const k in s){
+      const f = TXT_CSS[k], v = s[k];
+      if(!f || v === undefined || v === null || v === '') continue;
+      const [prop, val] = f(v);
+      el.style.setProperty(prop, val, 'important');
+    }
+    if(s.font) ensureFont(s.font);
+  });
+}
+
+function applyOffsets(d){
+  const o = (device() === 'mobile' ? d.offsetsMobile : d.offsets) || {};
+  document.querySelectorAll('[data-move]').forEach(el=>{
+    const v = o[el.dataset.move];
+    el.style.transform = (v && (v.x || v.y)) ? `translate(${v.x}px,${v.y}px)` : '';
+  });
+}
+
+let lastDevice = null;
+addEventListener('resize', ()=>{
+  if(!window.ADKINE) return;
+  const now = device();
+  if(now === lastDevice) return;
+  lastDevice = now;
+  applyBlockDevice(window.ADKINE.data);
+  applyTextStyles(window.ADKINE.data);
+  applyOffsets(window.ADKINE.data);
+});
 
 /* ============ video helpers ============ */
 function videoInfo(url){
@@ -467,6 +634,8 @@ function mediaEmbed(url, opts={}){
 
 /* ============ block renderers ============ */
 const P = (i, ...k) => `blocks.${i}.${k.join('.')}`;   // data path helper
+/* text that is allowed to hold line breaks (stored as \n, drawn as <br>) */
+const multi = s => esc(String(s ?? '').replace(/<br\s*\/?>/gi, '\n')).replace(/\n/g, '<br>');
 
 function head(b, i){
   if(!b.label && !b.heading && !b.intro) return '';
@@ -496,12 +665,15 @@ hero(b, i){
          data-item="${P(i,'buttons')}.${j}"><span data-path="${P(i,'buttons',j,'label')}">${esc(x.label)}</span></a>`).join('')}
     </div>
   </div>
-  <div class="scroll-hint">Scroll</div>`;
+  <div class="scroll-hint" data-path="${P(i,'scrollText')}">${esc(b.scrollText ?? 'Scroll')}</div>`;
 },
 
-marquee(b){
-  const w = (b.items||[]).map(x=>`<span>${esc(x)}</span><i>—</i>`).join('');
-  return `<div class="marquee-track">${w+w}</div>`;
+marquee(b, i){
+  const items = b.items || [];
+  // only the first copy is editable; the second is the seamless-loop clone
+  const one   = items.map((x,j)=>`<span data-path="${P(i,'items',j)}">${esc(x)}</span><i>—</i>`).join('');
+  const clone = items.map(x=>`<span>${esc(x)}</span><i>—</i>`).join('');
+  return `<div class="marquee-track">${one+clone}</div>`;
 },
 
 projects(b, i){
@@ -567,7 +739,8 @@ about(b, i){
 contact(b, i){
   return `<div class="contact-blk">
     <div class="sec-num reveal" data-path="${P(i,'label')}">${esc(b.label)}</div>
-    <h2 class="reveal" data-d="1" data-move="${b.id}.heading">${String(b.heading||'').replace(/<br\s*\/?>/gi,'<br>').replace(/<(?!br>)/g,'&lt;')}</h2>
+    <h2 class="reveal" data-d="1" data-move="${b.id}.heading"
+        data-path="${P(i,'heading')}" data-multiline="1">${multi(b.heading)}</h2>
     <p class="reveal" data-d="2" data-path="${P(i,'intro')}">${esc(b.intro)}</p>
     <a href="mailto:${esc(b.email)}" class="mail reveal" data-d="3" data-path="${P(i,'email')}">${esc(b.email)}</a>
     <div class="socials reveal" data-d="4" data-list="${P(i,'socials')}">
@@ -643,16 +816,20 @@ function render(d){
   document.title = d.brand?.pageTitle || 'ADKINE';
 
   document.getElementById('logo').innerHTML =
-    `${esc(d.brand?.logoStart)}<span class="ki">${esc(d.brand?.logoMiddle)}</span>${esc(d.brand?.logoEnd)}`;
+    `<span data-path="brand.logoStart">${esc(d.brand?.logoStart)}</span>` +
+    `<span class="ki" data-path="brand.logoMiddle">${esc(d.brand?.logoMiddle)}</span>` +
+    `<span data-path="brand.logoEnd">${esc(d.brand?.logoEnd)}</span>`;
   document.getElementById('links').innerHTML =
     (d.nav||[]).map((n,j)=>`<a href="${esc(n.link)}" data-item="nav.${j}" data-path="nav.${j}.label">${esc(n.label)}</a>`).join('');
 
-  document.getElementById('blocks').innerHTML = (d.blocks||[]).map((b,i)=>{
-    const fn = RENDER[b.type];
+  document.getElementById('blocks').innerHTML = (d.blocks||[]).map((b0,i)=>{
+    const fn = RENDER[b0.type];
     if(!fn) return '';
+    const b = forDevice(b0);
     const noPad = ['hero','marquee','spacer','divider'].includes(b.type);
     const cls = ['blk', BLOCK_CLASS[b.type]||'', b.bg && !noPad ? 'bg-'+b.bg : '',
-                 b.align === 'center' ? 'center' : ''].filter(Boolean).join(' ');
+                 b.align === 'center' ? 'center' : '',
+                 b.hidden ? 'd-hidden' : ''].filter(Boolean).join(' ');
     const bgLayer = b.bgImage ? `<div class="blk-bg${b.bgFixed?' fixed':''}" style="
         background-image:url('${esc(b.bgImage)}');
         opacity:${b.bgOpacity ?? 0.6};
@@ -666,7 +843,10 @@ function render(d){
   document.getElementById('footer').innerHTML =
     `<div data-path="footer.left">${esc(f.left)}</div><div data-path="footer.right">${esc(f.right)}</div>`;
 
+  tagTexts(d);
   applyOffsets(d);
+  applyTextStyles(d);
+  lastDevice = device();
 }
 
 /* ============ interactions ============ */
@@ -718,7 +898,10 @@ const EDIT = new URLSearchParams(location.search).has('edit');
 loadContent().then(d=>{
   render(d); init();
   window.ADKINE = { data:d, render, init, applyTheme, applyStyle, applyOffsets,
-                    FONT_STACK, uid, esc, migrate };
+                    FONT_STACK, uid, esc, migrate,
+                    device, setDevice, forDevice, buildDeviceCSS, applyBlockDevice,
+                    DEVICE_KEYS, tkeyOf, tagTexts, applyTextStyles, textStyleFor,
+                    TXT_CSS, ensureFont };
   if(EDIT){
     const s = document.createElement('script');
     s.src = '/assets/editor.js?v=' + Date.now();
