@@ -89,7 +89,9 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 /* optional background photo behind any block */
 .blk-bg{position:absolute;inset:0;z-index:0;background-repeat:no-repeat;pointer-events:none}
 .blk-bg.fixed{background-attachment:fixed}
-.blk > *:not(.blk-bg):not(.hero-media){position:relative;z-index:1}
+/* lift real content above the background photo — but never the editor's own
+   toolbars, or they'd lose their absolute positioning and z-index */
+.blk > *:not(.blk-bg):not(.hero-media):not(.ed-blkbar):not(.ed-blkname){position:relative;z-index:1}
 .blk.bg-white{background:var(--white)}
 .blk.bg-beige{background:var(--beige-pale)}
 .blk.bg-blue{background:var(--blue-pale)}
