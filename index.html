@@ -86,6 +86,10 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 
 /* ---------- blocks ---------- */
 .blk{position:relative;padding:calc(clamp(90px,13vw,170px)*var(--k-space)*var(--pad,1)) 5vw}
+/* optional background photo behind any block */
+.blk-bg{position:absolute;inset:0;z-index:0;background-repeat:no-repeat;pointer-events:none}
+.blk-bg.fixed{background-attachment:fixed}
+.blk > *:not(.blk-bg):not(.hero-media){position:relative;z-index:1}
 .blk.bg-white{background:var(--white)}
 .blk.bg-beige{background:var(--beige-pale)}
 .blk.bg-blue{background:var(--blue-pale)}
@@ -643,8 +647,13 @@ function render(d){
     const noPad = ['hero','marquee','spacer','divider'].includes(b.type);
     const cls = ['blk', BLOCK_CLASS[b.type]||'', b.bg && !noPad ? 'bg-'+b.bg : '',
                  b.align === 'center' ? 'center' : ''].filter(Boolean).join(' ');
+    const bgLayer = b.bgImage ? `<div class="blk-bg${b.bgFixed?' fixed':''}" style="
+        background-image:url('${esc(b.bgImage)}');
+        opacity:${b.bgOpacity ?? 0.45};
+        background-position:${esc(b.bgPosition || 'center center')};
+        background-size:${esc(b.bgSize || 'cover')}"></div>` : '';
     return `<section class="${cls}" id="${esc(b.id)}" data-blk="${i}" data-type="${esc(b.type)}"
-             style="--pad:${b.pad ?? 1}">${fn(b,i)}</section>`;
+             style="--pad:${b.pad ?? 1}">${bgLayer}${fn(b,i)}</section>`;
   }).join('');
 
   const f = d.footer || {};
