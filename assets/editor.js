@@ -82,6 +82,30 @@
   body.ed-on [data-path]{cursor:text}
   body.ed-on [data-path]:hover{outline-color:rgba(147,174,201,.9)}
   body.ed-on [data-path]:focus{outline:2px solid #2E4057;background:rgba(147,174,201,.12)}
+  /* an empty line still has to be clickable */
+  body.ed-on [data-path]:empty::before{content:'Empty';opacity:.35;font-style:italic}
+  /* a moving strip is impossible to click into — hold it still while editing */
+  body.ed-on .marquee-track{animation:none!important}
+
+  /* per-text style button — follows whichever text you are working on */
+  .ed-txtbtn{position:fixed;z-index:10001;display:none;background:#2E4057;color:#FCFAF7;
+    border:0;border-radius:2px;padding:6px 10px;cursor:pointer;box-shadow:0 3px 12px rgba(22,24,28,.3);
+    font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+  .ed-txtbtn.show{display:block}
+  .ed-txtbtn:hover{background:#93AEC9;color:#16181C}
+  .ed-txt-live{outline:2px solid #8A6D2F!important;background:rgba(138,109,47,.10)}
+
+  /* device switcher */
+  .ed-dev{display:flex;border:1px solid rgba(240,233,220,.35);border-radius:2px;overflow:hidden}
+  .ed-dev button{background:none;border:0;color:#F0E9DC;padding:10px 13px;cursor:pointer;
+    font:500 11px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+  .ed-dev button.on{background:#93AEC9;color:#16181C}
+  .ed-devnote{background:#8A6D2F;color:#FCFAF7;font:500 10px/1 Inter,sans-serif;letter-spacing:.14em;
+    text-transform:uppercase;padding:6px 10px;border-radius:2px;margin-bottom:14px;display:none}
+  .ed-devnote.show{display:block}
+  .ed-panel textarea{width:100%;padding:8px 9px;border:1px solid rgba(46,64,87,.2);background:#fff;
+    font-family:inherit;font-size:13px;color:#23262C;border-radius:2px;min-height:96px;resize:vertical}
+  .ed-mini{font:400 11px/1.5 Inter,sans-serif;color:rgba(35,38,44,.6);margin:-4px 0 10px}
 
   /* block frame */
   body.ed-on .blk{outline:1px dashed transparent;transition:outline-color .15s}
@@ -228,6 +252,10 @@
       <button class="ed-btn" id="edRedo" title="Ctrl+Shift+Z">↷</button>
     </div>
     <div class="grp">
+      <div class="ed-dev" id="edDev">
+        <button data-d="desktop" class="on">🖥 Computer</button>
+        <button data-d="mobile">📱 Phone</button>
+      </div>
       <button class="ed-btn" id="edAdd">+ Add block</button>
       <button class="ed-btn" id="edFree">Free move</button>
       <button class="ed-btn" id="edDesign">Design</button>
@@ -255,6 +283,29 @@
     if (e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
     if (e.key.toLowerCase() === 's') { e.preventDefault(); saveBtn.click(); }
   });
+
+  /* ---------------- device switcher ----------------
+     Computer and Phone are edited separately. Desktop is the base; anything you
+     change while Phone is selected is stored as a phone-only override, so the
+     two never fight each other. */
+  const devBar = bar.querySelector('#edDev');
+  const dev = () => A().device();
+  const onPhone = () => dev() === 'mobile';
+
+  function switchDevice(mode) {
+    A().setDevice(mode);
+    devBar.querySelectorAll('button').forEach(b2 =>
+      b2.classList.toggle('on', b2.dataset.d === mode));
+    hideTextBtn();
+    redraw();
+    if (panelMode === 'block' && selected != null) blockPanel(selected);
+    else if (panelMode === 'text' && textTarget) textPanel(textTarget.key, textTarget.el);
+    say(mode === 'mobile'
+      ? 'Phone view — sizes, spacing and text styles you change now apply to phones only.'
+      : 'Computer view — you are editing the desktop layout.', 4200);
+  }
+  devBar.querySelectorAll('button').forEach(b2 =>
+    b2.onclick = () => { if (b2.dataset.d !== dev()) switchDevice(b2.dataset.d); });
 
   /* ---------------- block catalogue ---------------- */
   const CATALOGUE = [
@@ -338,7 +389,9 @@
   let selected = null;    // selected block index
 
   const closePanel = () => { panel.classList.remove('open'); panelMode = null;
-    document.querySelectorAll('.blk.ed-sel').forEach(e=>e.classList.remove('ed-sel')); };
+    document.querySelectorAll('.blk.ed-sel').forEach(e=>e.classList.remove('ed-sel'));
+    document.querySelectorAll('.ed-txt-live').forEach(e=>e.classList.remove('ed-txt-live'));
+    textTarget = null; hideTextBtn(); };
 
   /* ---- design panel ---- */
   const COLOR_LABELS = { blue:'Pastel blue', navy:'Deep blue', beige:'Beige',
@@ -407,6 +460,21 @@
   /* ---- block settings panel ---- */
   const BGS = [['white','#FCFAF7'],['beige','#F0E9DC'],['blue','#DCE6F0'],['navy','#2E4057'],['black','#16181C']];
 
+  /* Reading and writing a block setting always goes through these two, so a
+     change made in Phone view lands in b.mobile and never touches the desktop. */
+  const isDevKey = k => A().DEVICE_KEYS.includes(k);
+  function bget(b, k, def) {
+    if (onPhone() && isDevKey(k)) {
+      const v = (b.mobile || {})[k];
+      if (v !== undefined && v !== null) return v;
+    }
+    return (b[k] !== undefined && b[k] !== null) ? b[k] : def;
+  }
+  function bset(b, k, v) {
+    if (onPhone() && isDevKey(k)) (b.mobile ||= {})[k] = v;
+    else b[k] = v;
+  }
+
   function blockPanel(i) {
     const b = D().blocks[i];
     if (!b) return;
@@ -425,22 +493,26 @@
     let extra = '';
     if (['projects','gallery','services'].includes(b.type))
       extra += `<div class="ed-field"><label>Columns</label>
-        ${seg('columns', (b.type==='gallery'?[2,3,4]:[1,2,3]).map(n=>[n,n]), b.columns||(b.type==='gallery'?4:2))}</div>`;
+        ${seg('columns', (b.type==='gallery'?[1,2,3,4]:[1,2,3]).map(n=>[n,n]),
+              bget(b,'columns', b.type==='gallery'?4:2))}</div>`;
     if (['image','video'].includes(b.type))
       extra += `<div class="ed-field"><label>Width</label>
-        ${seg('width',[['narrow','Narrow'],['wide','Wide'],['full','Full']], b.width||'wide')}</div>`;
+        ${seg('width',[['narrow','Narrow'],['wide','Wide'],['full','Full']], bget(b,'width','wide'))}</div>`;
     if (b.type === 'image')
       extra += `<div class="ed-field"><label>Shape</label>
-        ${seg('ratio',[['16/9','Wide'],['4/3','Classic'],['1/1','Square'],['3/4','Tall']], b.ratio||'16/9')}</div>`;
+        ${seg('ratio',[['16/9','Wide'],['4/3','Classic'],['1/1','Square'],['3/4','Tall']], bget(b,'ratio','16/9'))}</div>`;
     if (b.type === 'about')
       extra += `<div class="ed-field"><label>Photo side</label>
-        ${seg('flip',[[false,'Left'],[true,'Right']], !!b.flip)}</div>`;
+        ${seg('flip',[[false,'Left'],[true,'Right']], !!bget(b,'flip',false))}</div>`;
     if (b.type === 'spacer')
-      extra += `<div class="ed-field"><label>Height <b id="v-height">${b.height||80}px</b></label>
-        <input type="range" data-n="height" min="20" max="400" step="10" value="${b.height||80}"></div>`;
+      extra += `<div class="ed-field"><label>Height <b id="v-height">${bget(b,'height',80)}px</b></label>
+        <input type="range" data-n="height" min="20" max="400" step="10" value="${bget(b,'height',80)}"></div>`;
     if (['text','buttons','quote'].includes(b.type))
       extra += `<div class="ed-field"><label>Alignment</label>
-        ${seg('align',[['left','Left'],['center','Centre']], b.align||'left')}</div>`;
+        ${seg('align',[['left','Left'],['center','Centre']], bget(b,'align','left'))}</div>`;
+    if (b.type === 'marquee')
+      extra += `<div class="ed-field"><label>Words <b>one per line</b></label>
+        <textarea id="pMqItems">${A().esc((b.items||[]).join('\n'))}</textarea></div>`;
 
     const showBg = !['spacer','marquee'].includes(b.type);
     const POSITIONS = [
@@ -456,15 +528,15 @@
         ${b.bgImage ? `<button class="ed-reset ed-danger" id="pBgClear">Remove it</button>` : ''}
       </div>
       ${b.bgImage ? `
-      <div class="ed-field"><label>Opacity <b id="v-bgOpacity">${Math.round((b.bgOpacity ?? .6)*100)}%</b></label>
-        <input type="range" data-n="bgOpacity" min="0.05" max="1" step="0.05" value="${b.bgOpacity ?? .6}"></div>
+      <div class="ed-field"><label>Opacity <b id="v-bgOpacity">${Math.round(bget(b,'bgOpacity',.6)*100)}%</b></label>
+        <input type="range" data-n="bgOpacity" min="0.05" max="1" step="0.05" value="${bget(b,'bgOpacity',.6)}"></div>
       <div class="ed-field"><label>Position <b>where it sits</b></label>
         <select id="pBgPos">${POSITIONS.map(([v,l])=>
-          `<option value="${v}"${(b.bgPosition||'center center')===v?' selected':''}>${l}</option>`).join('')}</select></div>
+          `<option value="${v}"${bget(b,'bgPosition','center center')===v?' selected':''}>${l}</option>`).join('')}</select></div>
       <div class="ed-field"><label>Fill</label>
-        ${seg('bgSize',[['cover','Fill'],['contain','Fit'],['auto','Actual size']], b.bgSize||'cover')}</div>
+        ${seg('bgSize',[['cover','Fill'],['contain','Fit'],['auto','Actual size']], bget(b,'bgSize','cover'))}</div>
       <div class="ed-field"><label>Scroll</label>
-        ${seg('bgFixed',[[false,'Moves'],[true,'Stays put']], !!b.bgFixed)}</div>` : ''}
+        ${seg('bgFixed',[[false,'Moves'],[true,'Stays put']], !!bget(b,'bgFixed',false))}</div>` : ''}
     ` : '';
 
     const heroVideo = b.type === 'hero' ? `
@@ -473,9 +545,18 @@
         <input type="text" id="pHeroVid" placeholder="Paste a link, or leave empty"
                value="${A().esc(b.backgroundVideo||'')}"></div>` : '';
 
+    const phoneOnly = Object.keys(b.mobile || {}).length;
     panel.innerHTML = `
       <span class="close-x" id="pClose">✕</span>
       <h4>${name} block</h4>
+      <div class="ed-devnote ${onPhone()?'show':''}">📱 Editing the phone version</div>
+      <div class="ed-field"><label>${onPhone() ? 'Show this block on phones' : 'Show this block'}</label>
+        ${seg('hidden',[[false,'Show'],[true,'Hide']], !!bget(b,'hidden',false))}</div>
+      <div class="ed-mini">${onPhone()
+        ? 'Phones only — the computer version is not affected.'
+        : 'Hiding here hides it everywhere, unless you set it differently in Phone view.'}</div>
+      ${onPhone() ? `<button class="ed-reset" id="pDevReset"
+          style="margin-top:0${phoneOnly ? '' : ';display:none'}">Clear phone-only settings</button>` : ''}
       ${showBg ? `<div class="ed-field"><label>Background colour</label>
         <div class="ed-swatches">${BGS.map(([v,c])=>
           `<div class="ed-sw ${(b.bg||'white')===v?'sel':''}" data-bg="${v}"
@@ -483,8 +564,8 @@
         </div></div>` : ''}
       ${bgPhoto}
       ${heroVideo}
-      ${b.type!=='spacer' ? `<div class="ed-field"><label>Padding <b id="v-pad">${Math.round((b.pad??1)*100)}%</b></label>
-        <input type="range" data-n="pad" min="0.2" max="2.2" step="0.05" value="${b.pad??1}"></div>` : ''}
+      ${b.type!=='spacer' ? `<div class="ed-field"><label>Padding <b id="v-pad">${Math.round(bget(b,'pad',1)*100)}%</b></label>
+        <input type="range" data-n="pad" min="0.2" max="2.2" step="0.05" value="${bget(b,'pad',1)}"></div>` : ''}
       ${extra}
       <div class="ed-field"><label>Anchor name <b>for menu links</b></label>
         <input type="text" id="pAnchor" value="${A().esc(b.id)}"></div>
@@ -496,11 +577,17 @@
       b.bg = sw.dataset.bg; markDirty(); redraw(); blockPanel(i); });
     panel.querySelectorAll('.ed-seg button').forEach(bt => bt.onclick = () => {
       const v = bt.dataset.v;
-      b[bt.dataset.k] = v === 'true' ? true : v === 'false' ? false : (isNaN(+v) ? v : +v);
+      bset(b, bt.dataset.k, v === 'true' ? true : v === 'false' ? false : (isNaN(+v) ? v : +v));
       markDirty(); redraw(); blockPanel(i); });
+    panel.querySelector('#pDevReset')?.addEventListener('click', () => {
+      delete b.mobile; markDirty(); redraw(); blockPanel(i);
+      say('This block now follows the computer version on phones'); });
+    panel.querySelector('#pMqItems')?.addEventListener('input', e => {
+      b.items = e.target.value.split('\n').map(s=>s.trim()).filter(Boolean);
+      markDirty(true); redraw(); });
     panel.querySelectorAll('input[data-n]').forEach(r => r.oninput = () => {
       const k = r.dataset.n, v = parseFloat(r.value);
-      b[k] = v;
+      bset(b, k, v);
       const lbl = panel.querySelector('#v-'+k);
       if (lbl) lbl.textContent = (k === 'pad' || k === 'bgOpacity')
         ? Math.round(v*100)+'%' : v+'px';
@@ -508,6 +595,8 @@
       if (k === 'pad') el?.style.setProperty('--pad', v);
       else if (k === 'bgOpacity') { const bg = el?.querySelector('.blk-bg'); if (bg) bg.style.opacity = v; }
       else { const sp = el?.querySelector('.spacer-inner'); sp?.style.setProperty('--h', v+'px'); }
+      const dr = panel.querySelector('#pDevReset');
+      if (dr) dr.style.display = Object.keys(b.mobile || {}).length ? '' : 'none';
       markDirty(true); });
 
     // background photo
@@ -516,7 +605,7 @@
     panel.querySelector('#pBgClear')?.addEventListener('click', () => {
       delete b.bgImage; markDirty(); redraw(); blockPanel(i); say('Background photo removed'); });
     panel.querySelector('#pBgPos')?.addEventListener('change', e => {
-      b.bgPosition = e.target.value;
+      bset(b, 'bgPosition', e.target.value);
       const bg = document.querySelector(`[data-blk="${i}"] .blk-bg`);
       if (bg) bg.style.backgroundPosition = e.target.value;
       markDirty(); });
@@ -543,22 +632,185 @@
     document.querySelectorAll('[data-path]').forEach(el => {
       el.contentEditable = String(!freeMode);
       el.spellcheck = false;
+      const multi = el.dataset.multiline === '1';
       let before = null;
-      el.addEventListener('focus', () => { before = snap(); });
+      el.addEventListener('focus', () => { before = snap(); showTextBtn(el); });
       el.addEventListener('input', () => {
-        set(D(), el.dataset.path, el.innerText.trim());
+        // a multi-line heading keeps its line breaks; everything else is one line
+        set(D(), el.dataset.path, multi ? el.innerText.replace(/\n+$/, '') : el.innerText.trim());
         dirty = true; saveBtn.disabled = false; saveBtn.textContent = 'Publish';
         saveBtn.classList.add('unsaved');
       });
       el.addEventListener('blur', () => {
         if (before && before !== snap()) { past.push(before); last = snap(); future.length = 0; }
         before = null;
+        setTimeout(() => { if (panelMode !== 'text') hideTextBtn(); }, 220);
       });
       el.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); el.blur(); }
+        if (e.key === 'Enter' && !e.shiftKey && !multi) { e.preventDefault(); el.blur(); }
       });
       el.addEventListener('click', e => e.stopPropagation());
+      el.addEventListener('mouseenter', () => { if (!freeMode && panelMode !== 'text') showTextBtn(el); });
     });
+    if (textTarget) {                       // keep the open text panel pointing at a live node
+      const again = findText(textTarget.key);
+      if (again) { textTarget.el = again; again.classList.add('ed-txt-live'); showTextBtn(again); }
+    }
+  }
+
+  /* ---------------- per-text styling ----------------
+     Every single piece of text has its own key, and its own look for Computer
+     and for Phone. Phone values are layered over the computer ones, so a text
+     you never touch on the phone simply follows the computer. */
+  let textTarget = null;
+  const findText = key => key
+    ? document.querySelector('[data-tkey="' + (window.CSS?.escape ? CSS.escape(key) : key) + '"]')
+    : null;
+
+  const txtBtn = Object.assign(document.createElement('button'),
+    { className:'ed-txtbtn', textContent:'Aa  Style this text', type:'button' });
+  document.body.appendChild(txtBtn);
+  function showTextBtn(el) {
+    if (freeMode || !el || !el.dataset.tkey) return;
+    const r = el.getBoundingClientRect();
+    if (!r.width && !r.height) return;
+    const navB = document.querySelector('nav')?.getBoundingClientRect().bottom || 0;
+    txtBtn._el = el;
+    // scrolled out of sight — a button floating over nothing is just confusing.
+    // Keep the target so it comes straight back when you scroll to it again.
+    // (nav text sits above navB and is still perfectly visible, so measure the
+    //  viewport, not the nav.)
+    if (r.bottom < 0 || r.top > innerHeight) { txtBtn.classList.remove('show'); return; }
+    txtBtn.dataset.key = el.dataset.tkey;
+    txtBtn.style.left = Math.max(6, Math.round(r.left)) + 'px';
+    txtBtn.classList.add('show');
+    // above the text by default; drop below if that would bury a photo/video button
+    const hits = y => {
+      const box = { left: r.left, right: r.left + txtBtn.offsetWidth, top: y, bottom: y + txtBtn.offsetHeight };
+      return [...document.querySelectorAll('.ed-mediabar, .ed-itembar')].some(o => {
+        const q = o.getBoundingClientRect();
+        return q.width && !(box.right <= q.left || q.right <= box.left ||
+                            box.bottom <= q.top || q.bottom <= box.top);
+      });
+    };
+    const above = Math.max(navB + 6, r.top - 27);
+    txtBtn.style.top = Math.round(hits(above) && !hits(r.bottom + 5) ? r.bottom + 5 : above) + 'px';
+  }
+  function hideTextBtn() { txtBtn.classList.remove('show'); txtBtn._el = null; }
+  txtBtn.addEventListener('mousedown', e => e.preventDefault());   // never steal the caret
+  txtBtn.onclick = e => {
+    e.preventDefault(); e.stopPropagation();
+    if (txtBtn._el) textPanel(txtBtn.dataset.key, txtBtn._el);
+  };
+  addEventListener('scroll', () => {
+    if (txtBtn._el && txtBtn._el.isConnected) showTextBtn(txtBtn._el);
+  }, { passive:true });
+
+  const TS = () => (D().textStyles ||= {});
+  const tslot = key => { const t = (TS()[key] ||= {}); return (t[onPhone() ? 'mobile' : 'desktop'] ||= {}); };
+  function tread(key, k) {
+    const t = TS()[key] || {};
+    if (onPhone() && t.mobile && t.mobile[k] !== undefined) return t.mobile[k];
+    return (t.desktop || {})[k];
+  }
+  const hexOf = c => {
+    const m = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(c || '');
+    return m ? '#' + [m[1],m[2],m[3]].map(n => (+n).toString(16).padStart(2,'0')).join('') : '#16181C';
+  };
+  const pretty = s => String(s).replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\./g, ' › ').replace(/(^|\s|›\s)\w/g, c => c.toUpperCase());
+  const ALL_FONTS = [...DISPLAY_FONTS, ...BODY_FONTS];
+
+  function textPanel(key, el) {
+    el = (el && el.isConnected) ? el : findText(key);
+    if (!el) return closePanel();
+    panelMode = 'text'; textTarget = { key, el };
+    document.querySelectorAll('.ed-txt-live').forEach(e => e.classList.remove('ed-txt-live'));
+    el.classList.add('ed-txt-live');
+    showTextBtn(el);
+
+    const cs = getComputedStyle(el);
+    const cur = k => tread(key, k);
+    const size = Math.round(parseFloat(cur('size') ?? cs.fontSize)) || 16;
+    const weight = String(cur('weight') ?? (parseInt(cs.fontWeight) || 400));
+    const align = cur('align') ?? (['left','center','right'].includes(cs.textAlign) ? cs.textAlign : 'left');
+    const track = cur('tracking') ?? 0;
+    const lh = cur('lineHeight') ??
+      ((Math.round((parseFloat(cs.lineHeight) / (parseFloat(cs.fontSize) || 16)) * 100) / 100) || 1.4);
+    const color = cur('color') ?? hexOf(cs.color);
+    const seg = (k, opts, c) => `<div class="ed-seg">${opts.map(([v,l]) =>
+      `<button data-t="${k}" data-v="${v}" class="${String(c)===String(v)?'on':''}">${l}</button>`).join('')}</div>`;
+    const hasPhone = Object.keys((TS()[key] || {}).mobile || {}).length;
+
+    panel.innerHTML = `
+      <span class="close-x" id="pClose">✕</span>
+      <h4>Text — ${pretty(key)}</h4>
+      <div class="ed-devnote ${onPhone()?'show':''}">📱 Editing the phone version</div>
+      <div class="ed-mini">Only this one piece of text changes.</div>
+      <div class="ed-field"><label>Font</label>
+        <select id="tFont">
+          <option value="">Default</option>
+          ${ALL_FONTS.map(f=>`<option value="${f}"${cur('font')===f?' selected':''}>${f}</option>`).join('')}
+        </select></div>
+      <div class="ed-field"><label>Size <b id="v-tsize">${size}px</b></label>
+        <input type="range" id="tSize" min="8" max="180" step="1" value="${size}"></div>
+      <div class="ed-field"><label>Weight</label>
+        ${seg('weight',[[300,'Light'],[400,'Normal'],[500,'Medium'],[600,'Bold'],[800,'Black']], weight)}</div>
+      <div class="ed-field"><label>Style</label>
+        ${seg('italic',[[false,'Normal'],[true,'Italic']], !!cur('italic'))}</div>
+      <div class="ed-field"><label>Capitals</label>
+        ${seg('caps',[[false,'As typed'],[true,'UPPERCASE']], !!cur('caps'))}</div>
+      <div class="ed-field"><label>Alignment</label>
+        ${seg('align',[['left','Left'],['center','Centre'],['right','Right']], align)}</div>
+      <div class="ed-row"><span>Colour</span><input type="color" id="tColor" value="${color}"></div>
+      <div class="ed-field"><label>Letter spacing <b id="v-ttrack">${(+track).toFixed(3)}em</b></label>
+        <input type="range" id="tTrack" min="-0.08" max="0.4" step="0.005" value="${track}"></div>
+      <div class="ed-field"><label>Line height <b id="v-tlh">${(+lh).toFixed(2)}</b></label>
+        <input type="range" id="tLh" min="0.8" max="2.6" step="0.02" value="${lh}"></div>
+      ${onPhone() ? `<button class="ed-reset" id="tFollow"
+          style="${hasPhone ? '' : 'display:none'}">Follow the computer version</button>` : ''}
+      <button class="ed-reset ed-danger" id="tReset">
+        Reset this text${onPhone() ? ' (phone)' : ''}</button>`;
+
+    const live = () => {
+      A().applyTextStyles(D());
+      const f = panel.querySelector('#tFollow');
+      if (f) f.style.display = Object.keys((TS()[key] || {}).mobile || {}).length ? '' : 'none';
+      markDirty(true);
+    };
+    const put = (k, v) => {
+      const s = tslot(key);
+      if (v === '' || v === null || v === undefined) delete s[k]; else s[k] = v;
+      live();
+    };
+
+    panel.querySelector('#pClose').onclick = closePanel;
+    panel.querySelector('#tFont').onchange = e => { if (e.target.value) A().ensureFont(e.target.value);
+      put('font', e.target.value); };
+    panel.querySelector('#tSize').oninput = e => {
+      panel.querySelector('#v-tsize').textContent = e.target.value + 'px';
+      put('size', +e.target.value); };
+    panel.querySelector('#tTrack').oninput = e => {
+      panel.querySelector('#v-ttrack').textContent = (+e.target.value).toFixed(3) + 'em';
+      put('tracking', +e.target.value); };
+    panel.querySelector('#tLh').oninput = e => {
+      panel.querySelector('#v-tlh').textContent = (+e.target.value).toFixed(2);
+      put('lineHeight', +e.target.value); };
+    panel.querySelector('#tColor').oninput = e => put('color', e.target.value);
+    panel.querySelectorAll('.ed-seg button').forEach(bt => bt.onclick = () => {
+      const v = bt.dataset.v;
+      put(bt.dataset.t, v === 'true' ? true : v === 'false' ? false : (isNaN(+v) ? v : +v));
+      bt.parentElement.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      bt.classList.add('on'); });
+    panel.querySelector('#tFollow')?.addEventListener('click', () => {
+      delete (TS()[key] || {}).mobile; live(); textPanel(key, findText(key));
+      say('This text now follows the computer version on phones'); });
+    panel.querySelector('#tReset').onclick = () => {
+      const t = TS()[key];
+      if (t) { delete t[onPhone() ? 'mobile' : 'desktop']; if (!Object.keys(t).length) delete TS()[key]; }
+      live(); textPanel(key, findText(key)); say('Text style reset'); };
+
+    panel.classList.add('open');
   }
 
   /* ---------------- media ---------------- */
@@ -801,7 +1053,7 @@
       node.style.position = 'fixed';
       node.style.top = Math.round(top) + 'px';
       if (side === 'right') { node.style.right = Math.round(innerWidth - r.right + 8) + 'px'; node.style.left = 'auto'; }
-      else { node.style.left = Math.round(r.left + innerWidth * 0.05) + 'px'; node.style.right = 'auto'; }
+      else { node.style.left = Math.round(r.left + r.width * 0.05) + 'px'; node.style.right = 'auto'; }
     }
   }
   const repin = () => { if (pinned) placeBar(pinned.el, pinned.tb, pinned.tag); };
@@ -924,7 +1176,10 @@
     document.body.classList.toggle('ed-free', freeMode);
     freeBtn.classList.toggle('on', freeMode);
     document.querySelectorAll('[data-path]').forEach(el => el.contentEditable = String(!freeMode));
-    say(freeMode ? 'Drag any block. Double-click one to snap it back.' : 'Free move off', 3500);
+    if (freeMode) hideTextBtn();
+    say(freeMode
+      ? `Drag anything. Double-click to snap it back. Positions are saved for ${onPhone()?'phones':'computers'} only.`
+      : 'Free move off', 3800);
   };
   const SNAP = 7;
   function candidates(moving) {
@@ -935,8 +1190,10 @@
       xs.push(r.left, r.left+r.width/2, r.right);
       ys.push(r.top, r.top+r.height/2, r.bottom);
     });
-    const g = innerWidth*0.05;
-    xs.push(g, innerWidth/2, innerWidth-g);
+    // page edges + centre — measured from the page itself so the phone frame works too
+    const pr = document.getElementById('blocks').getBoundingClientRect();
+    const g = pr.width * 0.05;
+    xs.push(pr.left + g, pr.left + pr.width/2, pr.right - g);
     return {xs, ys};
   }
   function wireFree() {
@@ -944,7 +1201,9 @@
       el.addEventListener('mousedown', e => {
         if (!freeMode || e.button !== 0 || e.target.closest('.ed-chip,.ed-blkbar,.ed-itembar')) return;
         e.preventDefault();
-        const key = el.dataset.move, off = (D().offsets ||= {});
+        // computer and phone each remember their own positions
+        const key = el.dataset.move;
+        const off = onPhone() ? (D().offsetsMobile ||= {}) : (D().offsets ||= {});
         const cur = off[key] || {x:0,y:0};
         const sx = e.clientX, sy = e.clientY, {xs,ys} = candidates(el);
         const before = snap();
@@ -979,7 +1238,7 @@
       el.addEventListener('dblclick', e => {
         if (!freeMode) return;
         e.preventDefault();
-        delete (D().offsets ||= {})[el.dataset.move];
+        delete (onPhone() ? (D().offsetsMobile ||= {}) : (D().offsets ||= {}))[el.dataset.move];
         el.style.transform = ''; markDirty(); say('Snapped back');
       });
     });
@@ -1086,10 +1345,15 @@
 
   /* ---------------- boot ---------------- */
   if (!D().offsets || typeof D().offsets !== 'object') D().offsets = {};
+  if (!D().offsetsMobile || typeof D().offsetsMobile !== 'object') D().offsetsMobile = {};
+  if (!D().textStyles || typeof D().textStyles !== 'object') D().textStyles = {};
   if (!D().style || typeof D().style !== 'object') D().style = {};
   if (!Array.isArray(D().blocks)) D().blocks = [];
+  A().buildDeviceCSS();
+  A().setDevice('desktop');
+  devBar.querySelectorAll('button').forEach(b2 => b2.classList.toggle('on', b2.dataset.d === 'desktop'));
   baseline = snap(); last = snap();
   redraw();
-  say('Click any text to edit · hover a block for its controls · sign in (top right) to add photos', 8000);
+  say('Click any text to edit, then “Aa Style this text” to change just that one · switch Computer / Phone at the top', 9000);
   addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 })();
