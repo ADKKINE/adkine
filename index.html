@@ -115,6 +115,10 @@ nav.scrolled{padding:18px 5vw;background:rgba(252,250,247,.82);backdrop-filter:b
 .hero-media{position:absolute;inset:0;z-index:0;background:linear-gradient(120deg,var(--blue-pale) 0%,var(--beige-pale) 55%,var(--white) 100%)}
 .hero-media video,.hero-media iframe{width:100%;height:100%;object-fit:cover;border:0}
 .hero-media::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(252,250,247,.92) 0%,rgba(252,250,247,.55) 50%,rgba(252,250,247,.2) 100%)}
+/* with a background photo the hero's own gradient would sit on top of it —
+   go transparent and soften the readability scrim instead */
+.hero-media.has-photo{background:none}
+.hero-media.has-photo::after{background:linear-gradient(90deg,rgba(252,250,247,.70) 0%,rgba(252,250,247,.32) 45%,rgba(252,250,247,.04) 100%)}
 .hero-inner{position:relative;z-index:2;max-width:1000px}
 .eyebrow{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--navy);margin-bottom:30px;font-weight:500}
 .hero h1{font-family:var(--serif);font-weight:300;font-size:calc(clamp(3.4rem,9.5vw,9rem)*var(--k-head));line-height:.94;letter-spacing:var(--track);color:var(--black);margin-bottom:34px}
@@ -479,7 +483,7 @@ const RENDER = {
 
 hero(b, i){
   return `
-  <div class="hero-media">${b.backgroundVideo ? mediaEmbed(b.backgroundVideo,{bg:true}) : ''}</div>
+  <div class="hero-media${b.bgImage ? ' has-photo' : ''}">${b.backgroundVideo ? mediaEmbed(b.backgroundVideo,{bg:true}) : ''}</div>
   <div class="hero-inner">
     <div class="eyebrow reveal" data-move="${b.id}.eyebrow" data-path="${P(i,'eyebrow')}">${esc(b.eyebrow)}</div>
     <h1 class="reveal" data-d="1" data-move="${b.id}.title">
