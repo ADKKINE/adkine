@@ -193,5 +193,46 @@
     }
   ],
   "offsetsMobile": {},
-  "textStyles": {}
+  "textStyles": {
+    "services.items.1.bullets.0": {
+      "desktop": {
+        "color": "#fcfaf7"
+      }
+    },
+    "services.items.1.bullets.2": {
+      "desktop": {
+        "color": "#e7e5e4"
+      }
+    },
+    "services.items.1.bullets.3": {
+      "desktop": {
+        "color": "#f7f5f2"
+      }
+    },
+    "services.items.1.bullets.1": {
+      "desktop": {
+        "color": "#fcfaf7"
+      }
+    },
+    "services.items.0.bullets.0": {
+      "desktop": {
+        "color": "#f7f5f2"
+      }
+    },
+    "services.items.0.bullets.1": {
+      "desktop": {
+        "color": "#fcfaf7"
+      }
+    },
+    "services.items.0.bullets.2": {
+      "desktop": {
+        "color": "#fcfaf7"
+      }
+    },
+    "services.items.0.bullets.3": {
+      "desktop": {
+        "color": "#fcfaf7"
+      }
+    }
+  }
 }
