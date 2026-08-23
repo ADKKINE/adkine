@@ -98,40 +98,22 @@
       "intro": "Six pieces spanning commercial, brand and short-form film.",
       "items": [
         {
-          "title": "Project Title One",
+          "title": "metal workshop",
           "category": "Brand Film",
           "thumbnail": "",
           "videoUrl": "https://www.youtube.com/shorts/T1sbRmkXemY"
         },
         {
-          "title": "Project Title Two",
+          "title": "the coffee",
           "category": "Commercial",
           "thumbnail": "",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/shorts/334fbRJc64c"
         },
         {
-          "title": "Project Title Three",
-          "category": "Motion Design",
+          "title": "wooden board",
+          "category": "Commercial",
           "thumbnail": "",
-          "videoUrl": ""
-        },
-        {
-          "title": "Project Title Four",
-          "category": "Short Film",
-          "thumbnail": "",
-          "videoUrl": ""
-        },
-        {
-          "title": "Project Title Five",
-          "category": "Product",
-          "thumbnail": "",
-          "videoUrl": ""
-        },
-        {
-          "title": "Project Title Six",
-          "category": "Event",
-          "thumbnail": "",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/shorts/X6sLYBpiWFE"
         }
       ]
     },
@@ -209,5 +191,7 @@
         }
       ]
     }
-  ]
+  ],
+  "offsetsMobile": {},
+  "textStyles": {}
 }
